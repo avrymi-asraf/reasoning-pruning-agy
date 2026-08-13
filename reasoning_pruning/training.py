@@ -1,7 +1,11 @@
 """Fine-tuning tools for training models on Pruning-Transition (PT) datasets.
 
-Optimized for Google Colab GPUs (T4 / A100 / L4) with 4-bit QLoRA, TRL SFTTrainer,
-and W&B metric logging.
+Big Picture Role: Fine-tunes the base generator model G on next-step transitions
+(x -> y) to create the compressed generator model G'.
+Code Flow Connection: Consumes `datasets.Dataset` instances from `dataset.py`, formats
+transition prompt-completions, and outputs trained checkpoints for `evaluation.py` and `hub.py`.
+Execution Environment: Runs on GPU environments (Google Colab T4/A100/L4, cloud instances)
+using 4-bit QLoRA with Hugging Face TRL and PEFT.
 """
 
 from __future__ import annotations

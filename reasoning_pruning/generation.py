@@ -1,7 +1,11 @@
 """Reasoning trajectory generation and recursive pruning rollout tools.
 
-Provides tools to generate reasoning chains from generator model G and iteratively
-roll out pruning decisions across multiple depths.
+Big Picture Role: Manages generator model G execution and recursive pruning rollouts
+to generate multi-depth training examples.
+Code Flow Connection: Initiates the reasoning chain via `generate_trace`, calls `find_first_skip`
+and `extract_transition`, and iterates recursively in `rollout_pruning`.
+Execution Environment: Runs in local Python, Google Colab notebooks, and CLI processes
+using local model checkpoints or API endpoints.
 """
 
 from __future__ import annotations

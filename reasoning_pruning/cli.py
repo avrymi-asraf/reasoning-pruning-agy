@@ -1,6 +1,11 @@
 """Command Line Interface (CLI) for Reasoning Pruning.
 
-Provides a thin Typer shell over the core composable tools.
+Big Picture Role: Serves as the lightweight Typer CLI entry point exposing the core
+composable tools for terminal and Colab execution.
+Code Flow Connection: Parses CLI flags and dispatches directly to `rollout_pruning`,
+`build_pt_dataset`, `train_pruning_model`, `evaluate_models`, and `launch_viewer`.
+Execution Environment: Runs in local terminal and remote Google Colab / SSH runtimes
+via `uv run rp <command>`.
 """
 
 from __future__ import annotations

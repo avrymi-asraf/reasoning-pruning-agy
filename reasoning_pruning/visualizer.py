@@ -1,7 +1,11 @@
 """Visualization tools for Reasoning Pruning.
 
-Provides rich terminal rendering, notebook-native HTML formatting, and an interactive
-Gradio app for inspecting reasoning traces, pruning decisions, and model battles.
+Big Picture Role: Provides qualitative visual inspection capabilities across all
+stages of data generation, pruning decisions, and model evaluations.
+Code Flow Connection: Consumes `ReasoningTrace`, `PruneDecision`, and `EvalResult`
+objects to render in-notebook HTML snippets, terminal Rich panels, and Gradio UIs.
+Execution Environment: Runs inside Jupyter/Google Colab cells (`HTML`), terminals (`Rich`),
+and browser dashboards (`Gradio`).
 """
 
 from __future__ import annotations

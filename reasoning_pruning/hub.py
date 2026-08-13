@@ -1,7 +1,10 @@
 """Hugging Face Hub integration tools for datasets and models.
 
-Provides tools to push versioned datasets and model checkpoints with automated
-lineage tracking and documentation cards.
+Big Picture Role: Manages persistent versioning, dataset uploads, and trained model
+adapter releases to the Hugging Face Hub with automated lineage documentation.
+Code Flow Connection: Receives `datasets.Dataset` instances from `dataset.py` and model
+checkpoints from `training.py`, uploading them with generated Dataset/Model Cards.
+Execution Environment: Runs in local Python, Google Colab notebooks, and CLI processes.
 """
 
 from __future__ import annotations

@@ -1,7 +1,12 @@
-"""Core data structures and schemas for Reasoning Pruning.
+"""Core data structures and schema definitions for Reasoning Pruning.
 
-All tools consume and return these explicit, type-annotated dataclasses.
-No hidden global state.
+Big Picture Role: Defines the foundational shared dataclasses (ReasoningTrace,
+PruneDecision, TransitionExample, RolloutResult, TrainResult, EvalResult) used across
+all modules.
+Code Flow Connection: Serves as the structured contracts passed between generation,
+pruning decisions, dataset building, training, evaluation, and visualizers.
+Execution Environment: Runs universally in local Python environments, Google Colab
+notebooks, and CLI execution environments.
 """
 
 from __future__ import annotations

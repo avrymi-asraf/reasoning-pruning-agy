@@ -1,7 +1,10 @@
 """Reasoning step and sentence segmentation tools.
 
-Provides robust segmentation for decomposing raw reasoning traces into
-discrete logical units for pruning and training.
+Big Picture Role: Decomposes raw reasoning trajectories into discrete, addressable
+logical units (s_1, s_2, ..., s_n) for downstream pruning and training.
+Code Flow Connection: Called immediately after `generate_trace` produces model output,
+feeding clean step sequences into `find_first_skip` and `extract_transition`.
+Execution Environment: Runs in CPU/local Python, Google Colab notebooks, and CLI processes.
 """
 
 from __future__ import annotations

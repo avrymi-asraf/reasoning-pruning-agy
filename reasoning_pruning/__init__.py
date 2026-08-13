@@ -1,7 +1,9 @@
 """Reasoning Pruning: Train reasoning models on their own pruned transition paths.
 
-Exports a small, composable set of well-documented tools for research,
-notebook experimentation, and Colab-CLI execution.
+Big Picture Role: Package root exposing the public composable toolset and core dataclasses.
+Code Flow Connection: Provides top-level imports (`from reasoning_pruning import generate_trace, ...`)
+for notebook experimentation and external scripts.
+Execution Environment: Runs universally in local Python, Google Colab notebooks, and CLI processes.
 """
 
 from reasoning_pruning.dataset import build_pt_dataset, load_pt_dataset

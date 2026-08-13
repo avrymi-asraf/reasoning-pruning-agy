@@ -1,7 +1,10 @@
 """Evaluation tools for comparing Base vs Pruned reasoning models.
 
-Measures reasoning token compression ratio, accuracy retention on benchmark tasks,
-and generates side-by-side evaluation traces.
+Big Picture Role: Validates hypothesis by comparing reasoning token reduction and
+task accuracy between base generator G and fine-tuned pruned model G'.
+Code Flow Connection: Consumes model checkpoints produced by `training.py`, runs
+benchmark questions, and outputs `EvalResult` objects for `visualizer.py` and `hub.py`.
+Execution Environment: Runs in local Python, Google Colab notebooks, and CLI processes.
 """
 
 from __future__ import annotations

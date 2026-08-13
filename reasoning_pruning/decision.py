@@ -1,7 +1,11 @@
 """Decision model tools for identifying removable reasoning units.
 
-Uses LiteLLM to prompt decision models (e.g. gpt-4o-mini, claude-3-5-sonnet, deepseek-chat, local LLMs)
-to detect the first skippable reasoning step or span.
+Big Picture Role: Serves as the decision auditor D, querying an LLM (via LiteLLM) to
+identify the first safely removable reasoning unit without breaking logic.
+Code Flow Connection: Receives a `ReasoningTrace` from `generate_trace`, evaluates its
+steps, and produces a `PruneDecision` that directs `extract_transition`.
+Execution Environment: Runs anywhere LiteLLM API access is available (local terminal,
+Google Colab, cloud runtimes).
 """
 
 from __future__ import annotations

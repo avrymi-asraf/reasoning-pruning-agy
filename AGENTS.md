@@ -1,96 +1,148 @@
-# AGENTS.md — Reasoning Pruning Agent Guidelines & Project Instructions
+## Project Goal
 
-> **Project Mission**: Train LLM reasoning models on their own pruned, compressed transition paths ($x \to y$) so they learn during generation to skip unnecessary intermediate reasoning steps without sacrificing deductive correctness.
-
----
-
-## 1. Tooling & Environment Invariants
-
-- **`uv` (Only)**:
-  - All Python dependencies, virtual environments, scripts, and test executions must use `uv`.
-  - Commands: `uv sync`, `uv run pytest`, `uv run rp <command>`, `uv add <pkg>`.
-  - **NEVER** use bare `pip`, `conda`, `poetry`, or `python` commands without `uv`.
-- **Colab-CLI & Cloud Compute First**:
-  - The repository is designed to execute locally, in Google Colab, or via `colab-cli` / SSH runtimes with standard GPUs (T4 / A100 / L4).
-  - Training defaults to 4-bit QLoRA with `bitsandbytes` + `peft` + `trl`.
-- **Hugging Face Hub as the Artifact Store**:
-  - Versioned Pruning-Transition datasets are pushed to `hf.co/datasets/<user>/rp-...`.
-  - Trained model adapters and checkpoints are pushed to `hf.co/<user>/rp-...` with lineage Model Cards documenting training parameters and benchmark scores.
+* **Description:** Train LLM reasoning models on their own pruned, compressed transition paths ($x \to y$) so they learn during generation to skip unnecessary intermediate reasoning steps without sacrificing deductive correctness. The code is executed as a lightweight CLI (`uv run rp <command>`) or imported as pure Python tools inside Jupyter/Google Colab notebooks. It is designed to run locally, on remote SSH compute, or inside Google Colab GPU runtimes (T4 / A100 / L4) using `uv` and 4-bit QLoRA.
 
 ---
 
-## 2. Core Code & Architectural Principles
+## Project Structure - remember to update it when you make changes
 
-### A. Code as Tools (`.agents/skills/code-as-tools`)
-1. **Each function is a tool**: Does one meaningful thing, takes explicit arguments, and returns a usable structured object (`ReasoningTrace`, `PruneDecision`, `TransitionExample`, `RolloutResult`, `TrainResult`, `EvalResult`).
-2. **No hidden global state**: No process-level side effects, no `sys.exit()`, no swallowing exceptions.
-3. **Notebook is the field of experimentation**: Every tool must be directly importable and usable inside a Jupyter/Colab notebook cell (`from reasoning_pruning import ...`).
-4. **Thin CLI**: The CLI (`rp` / `reasoning_pruning/cli.py`) is merely a lightweight Typer shell over the core tools, never the only way to access functionality.
-5. **Stage-by-Stage Visualization**: Every stage (data generation, pruning decisions, training, model evaluation) must provide visual inspection helpers (`render_trace_diff`, `render_comparison`, `launch_viewer`) for notebook HTML display and terminal Rich output.
+* **Architecture:** The project is designed following the **Code-as-Tools** principle as a small set of composable, notebook-usable, well-documented Python tools rather than a rigid monolithic pipeline. It consists of four core functional layers:
+  1. **Generation & Pruning Layer** (`generation.py`, `decision.py`, `segmenter.py`): Generates reasoning traces $G(q)$, prompts decision model $D$ via LiteLLM to find the first safely skippable step/span, and extracts $(x \to y)$ transition pairs across multi-depth rollouts.
+  2. **Dataset & Hub Layer** (`dataset.py`, `hub.py`): Builds Hugging Face `Dataset` instances and synchronizes versioned datasets and model adapter checkpoints with lineage cards to Hugging Face Hub.
+  3. **Training Layer** (`training.py`): Fine-tunes generator model $G$ on $(x \to y)$ transitions using TRL `SFTTrainer` and 4-bit QLoRA with W&B logging.
+  4. **Evaluation & Visualization Layer** (`evaluation.py`, `visualizer.py`): Compares Base $G$ vs Pruned $G'$ on benchmark accuracy and token compression %, and provides in-notebook HTML diffs, Rich terminal outputs, and an interactive Gradio viewer.
 
-### B. Engineering & Style Standards (`.agents/skills/coding-principles`)
-1. **One Concept, One Name**: Reuse established names and schemas across the core library, tests, visualizers, and CLI. Do not invent synonyms for existing concepts.
-2. **File Header Context**: Every Python file must include a clear docstring explaining what the module does and how it fits into the broader codebase.
-3. **Simplicity over Cleverness**: Strive for the single clearest, most direct way to accomplish a task. Avoid decorative abstractions or complex multi-repo pipelines.
-4. **Verification Requirement**: Always verify changes by running the test suite (`uv run pytest`) and testing CLI commands before finishing a task.
+* **Code Flow:**
+  $$\text{Question } q \xrightarrow[\text{generate\_trace}]{\text{Generator } G} \text{Trace } (s_1..s_n) \xrightarrow[\text{find\_first\_skip}]{\text{Decision } D} \text{Skip } s_k \xrightarrow[\text{extract\_transition}]{\text{Pair}} (x \to y) \xrightarrow[\text{rollout\_pruning}]{\text{Recursive Rollout}} \text{PT Dataset}$$
+  $$\text{PT Dataset} \xrightarrow[\text{train\_pruning\_model}]{\text{QLoRA SFT}} \text{Pruned Model } G' \xrightarrow[\text{evaluate\_models}]{\text{Benchmark Eval}} \text{EvalResult (Accuracy + Token Savings \%)}$$
 
 ---
 
-## 3. Composable Toolset & Codebase Map
-
-All primary tools are exported at top level from `reasoning_pruning`:
+## File Structure - remember to update it with the latest project information
 
 ```
-reasoning-pruning/
-├── pyproject.toml              # uv project definition & dependencies
-├── README.md                   # Quickstart guide & CLI documentation
-├── AGENTS.md                   # This file (agent instructions & project invariants)
+/home/avreymi/reasoning-pruning
+├── pyproject.toml              # uv project definition & package dependencies
+├── uv.lock                     # Deterministic lockfile for uv
+├── README.md                   # Project overview, quickstart, and CLI instructions
+├── AGENTS.md                   # This file (project instructions, architecture, and code rules)
+├── .gitignore                  # Git ignore rules for environments, data, checkpoints
 ├── scripts/
-│   └── colab_setup.sh          # 1-click Colab environment setup script
+│   └── colab_setup.sh          # 1-click environment installer for Google Colab
 ├── notebooks/
-│   └── 01_explore_pruning.ipynb # Interactive exploration notebook
-├── reasoning_pruning/          # Core Python package
-│   ├── __init__.py             # Top-level tool exports
+│   └── 01_explore_pruning.ipynb # Interactive exploration & trace visualization notebook
+├── reasoning_pruning/          # Core importable Python package
+│   ├── __init__.py             # Exports top-level tools and types
 │   ├── types.py                # Core dataclasses (ReasoningTrace, PruneDecision, etc.)
 │   ├── segmenter.py            # Sentence & step boundary segmenter
 │   ├── decision.py             # find_first_skip (LiteLLM decision auditor)
 │   ├── generation.py           # generate_trace, extract_transition, rollout_pruning
 │   ├── dataset.py              # build_pt_dataset, load_pt_dataset
-│   ├── training.py             # train_pruning_model (TRL / QLoRA SFT)
-│   ├── evaluation.py           # evaluate_models (Benchmark runner & comparator)
+│   ├── training.py             # train_pruning_model (TRL / QLoRA SFT fine-tuning)
+│   ├── evaluation.py           # evaluate_models (Dual-model benchmark evaluator)
 │   ├── visualizer.py           # render_trace_diff, render_comparison, launch_viewer
 │   ├── hub.py                  # push_dataset_to_hf, push_model_to_hf
-│   └── cli.py                  # Typer CLI entry point
-└── tests/                      # Pytest suite
-    ├── test_types.py
-    ├── test_segmenter.py
-    ├── test_decision.py
-    └── test_visualizer.py
+│   └── cli.py                  # Thin Typer CLI shell over core tools
+└── tests/                      # Pytest unit tests
+    ├── test_types.py           # Serialization tests for dataclasses
+    ├── test_segmenter.py       # Step boundary segmentation tests
+    ├── test_decision.py        # Decision parsing and transition extraction tests
+    └── test_visualizer.py      # Terminal Rich & Notebook HTML diff renderer tests
 ```
 
----
-
-## 4. Agent Skill Routing Table
-
-When working in this repository, reference the relevant project-local skills:
-
-| Skill | Location | When to Apply |
-|---|---|---|
-| `code-as-tools` | `.agents/skills/code-as-tools` | Authoring research, exploration, data-generation, training, or evaluation code. |
-| `coding-principles` | `.agents/skills/coding-principles` | Structuring modules, naming conventions, and maintaining codebase clarity. |
-| `colab-cli` | `.agents/skills/colab-cli` | Executing remote compute tasks or provisioning Google Colab GPU runtimes. |
-| `manage-skills` | `.agents/skills/manage-skills` | Creating, updating, or reviewing skill files (`SKILL.md`). |
-| `project-agent-systems` | `.agents/skills/project-agent-systems` | Maintaining project-local agent configurations, memory, and `AGENTS.md`. |
-| `create-qa-spectrum` | `.agents/skills/create-qa-spectrum` | Curating and selecting reasoning QA benchmark datasets. |
-| `architecture-map` | `.agents/skills/architecture-map` | Generating interactive architectural system diagrams. |
+* `reasoning_pruning/`: Core Python library containing the 9 composable tools and dataclasses.
+* `notebooks/`: Jupyter/Colab notebooks designed for interactive experimentation and visualization.
+* `scripts/`: Shell automation scripts for environment setup and remote job execution.
+* `tests/`: Automated unit test suite run via `uv run pytest`.
 
 ---
 
-## 5. Verification Checklist for Agents
+## Running and using the code
 
-Before completing any task in this codebase:
-- [ ] Dependencies managed exclusively with `uv` (`uv sync`).
-- [ ] Code follows `code-as-tools` (pure functions, explicit types, notebook-usable).
-- [ ] All new functions include docstrings specifying: *What it does*, *When to reach for it*, *Parameters*, and *Returns*.
-- [ ] All unit tests pass cleanly: `uv run pytest`.
-- [ ] CLI commands tested if modified: `uv run rp --help`.
+**Prerequisites:**
+* Python 3.10 to 3.12 managed via `uv`.
+* LLM API Keys (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`) for decision model $D$ and API generators.
+* Hugging Face access token (`HF_TOKEN`) for dataset/model Hub sync.
+
+**Build Steps (if applicable):**
+1. Install `uv` (if not already installed):
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+2. Sync all project dependencies:
+   ```bash
+   uv sync --extra dev
+   ```
+   *Flow: `uv` resolves the lockfile and creates a localized virtual environment in `.venv/`.*
+
+**Running the Application:**
+
+1. **Test Pruning Rollout on a Single Question (with terminal diff):**
+   ```bash
+   uv run rp datagen try -q "Janet buys 3 packs of 12 eggs. She bakes 2 cakes using 4 eggs each. How many eggs are left?" --model-g gpt-4o-mini --model-d gpt-4o-mini
+   ```
+   *Flow: Calls `rollout_pruning`, prints colored step diffs via `render_trace_diff`, and summarizes compression ratio.*
+
+2. **Build Full Pruning-Transition Dataset & Push to Hugging Face:**
+   ```bash
+   uv run rp datagen build --dataset gsm8k --model-g Qwen/Qwen2.5-1.5B-Instruct --model-d gpt-4o-mini --max-depth 3 --push-to-hf user/rp-gsm8k-qwen1.5b-v1
+   ```
+   *Flow: Calls `build_pt_dataset` with multithreaded rollout, formats rows, and invokes `push_dataset_to_hf`.*
+
+3. **Fine-Tune with QLoRA on Colab GPU:**
+   ```bash
+   uv run rp train --dataset user/rp-gsm8k-qwen1.5b-v1 --base-model Qwen/Qwen2.5-1.5B-Instruct --epochs 3 --push-to-hf user/qwen1.5b-rp-v1
+   ```
+   *Flow: Calls `train_pruning_model`, applies 4-bit quantization and LoRA adapters, runs SFTTrainer, and pushes to HF.*
+
+4. **Evaluate Base vs. Pruned Model:**
+   ```bash
+   uv run rp eval --base-model Qwen/Qwen2.5-1.5B-Instruct --pruned-model user/qwen1.5b-rp-v1 --benchmark gsm8k
+   ```
+   *Flow: Calls `evaluate_models`, checks math answers against ground truth, and computes token savings %.*
+
+5. **Launch Interactive Gradio Visualizer:**
+   ```bash
+   uv run rp view --share
+   ```
+   *Flow: Calls `launch_viewer` to start the live web playground for interactive pruning and dataset browsing.*
+
+---
+
+## relevant documents
+
+* [README.md](file:///home/avreymi/reasoning-pruning/README.md) — Quickstart guide and CLI command documentation.
+* [code-as-tools SKILL.md](file:///home/avreymi/dotfiles/skills/code-as-tools/SKILL.md) — Core authoring principles for composable research tools.
+* [coding-principles SKILL.md](file:///home/avreymi/dotfiles/skills/coding-principles/SKILL.md) — Project-wide coding and naming invariants.
+* [colab-cli SKILL.md](file:///home/avreymi/dotfiles/skills/colab-cli/SKILL.md) — Google Colab CLI compute workflows.
+* [project-agent-systems SKILL.md](file:///home/avreymi/dotfiles/skills/project-agent-systems/SKILL.md) — Agent system standards and conventions.
+
+---
+
+## Status remember to update it when you make changes
+
+* Core library implemented with all 9 primary tools (`generate_trace`, `find_first_skip`, `extract_transition`, `rollout_pruning`, `build_pt_dataset`, `train_pruning_model`, `evaluate_models`, `render_trace_diff`, `launch_viewer`, `push_dataset_to_hf`, `push_model_to_hf`).
+* Full unit test suite passing (13/13 tests) via `uv run pytest`.
+* Interactive exploration notebook initialized in `notebooks/01_explore_pruning.ipynb`.
+* Next milestone: Conduct initial benchmark data generation runs on GSM8K and QLoRA fine-tuning in Colab-CLI.
+
+---
+
+## Code Writing Rules
+Do not create new documentation files (unless explicitly requested). Only update documentation via the `README` if necessary.
+
+### File Header (Mandatory)
+In the header of every code file, you **must** describe how that file relates to the **overall project architecture** and **code flow**.
+
+Each code file **must** include a short description (no more than 4–5 sentences) that explains the following:
+- Its role in the **big picture** (as defined in the **Project Structure** section).
+- Its connection to the main **code flow** of the project.
+- The intended **execution environment** (where this code will run, as defined in the **Project Goal** section).
+
+Remember to update important documents, remember to update your memory remember to update the relevant skills (if needed).
+Shared documents are super super important, they allow you to learn from mistakes and move forward. Remember to use them and update them.
+
+The skills folder has tutorials on how to handle important tools and things. Remember to read - and if you need to update them, update them. Integrate the new information with the existing information, don't reinvent the wheel.
+The docs folder has important documents that are only relevant to this project. Plans, etc. If there is a document that relates to your task, use it - and update it. Again - integrate the information, don't reinvent the wheel.
+Remember to update your memory. This is important
+We are in research and development, not a running product. We are not interested in backward compatibility. It is much more important that the code is clean, clear and readable.
