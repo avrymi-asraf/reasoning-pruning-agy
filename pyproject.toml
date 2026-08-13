@@ -1,0 +1,38 @@
+[project]
+name = "reasoning-pruning"
+version = "0.1.0"
+description = "Train reasoning models on their own pruned transition paths."
+readme = "README.md"
+requires-python = ">=3.10, <3.13"
+dependencies = [
+    "pydantic>=2.7.0",
+    "litellm>=1.40.0",
+    "rich>=13.7.0",
+    "typer>=0.12.0",
+    "datasets>=2.19.0",
+    "transformers>=4.40.0",
+    "torch>=2.2.0",
+    "accelerate>=0.29.0",
+    "peft>=0.10.0",
+    "trl>=0.8.6",
+    "bitsandbytes>=0.43.0",
+    "huggingface-hub>=0.23.0",
+    "gradio>=4.30.0",
+    "tqdm>=4.66.0",
+]
+
+[project.scripts]
+rp = "reasoning_pruning.cli:app"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ipython>=8.20.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["reasoning_pruning"]
