@@ -27,6 +27,10 @@
 ├── README.md                   # Project overview, quickstart, and CLI instructions
 ├── AGENTS.md                   # This file (project instructions, architecture, and code rules)
 ├── .gitignore                  # Git ignore rules for environments, data, checkpoints
+├── wiki/                       # Compounding related-work wiki (Karpathy LLM-wiki layout)
+│   ├── index.md                # Scope, topic map, tensions, gaps
+│   ├── sources/                # One evidence page per paper or local artifact
+│   └── pages/                  # Synthesis: auditor method, supervision unit, overthinking, methods
 ├── scripts/
 │   └── colab_setup.sh          # 1-click environment installer for Google Colab
 ├── notebooks/
@@ -54,6 +58,7 @@
 * `notebooks/`: Jupyter/Colab notebooks designed for interactive experimentation and visualization.
 * `scripts/`: Shell automation scripts for environment setup and remote job execution.
 * `tests/`: Automated unit test suite run via `uv run pytest`.
+* `wiki/`: Related-work wiki. Open `wiki/` (not the repo root) as an Obsidian vault. Start at `wiki/index.md`.
 
 ---
 
@@ -107,24 +112,47 @@
    ```
    *Flow: Calls `launch_viewer` to start the live web playground for interactive pruning and dataset browsing.*
 
+6. **Interactive Data Exploration & Trace Probing via Colab CLI:**
+   ```bash
+   # 1. Provision a named T4 GPU session
+   colab new -s rp-explore --gpu T4
+
+   # 2. Upload library and install dependencies via in-VM uv
+   colab upload -s rp-explore reasoning_pruning /content/reasoning_pruning
+   colab install -s rp-explore litellm datasets transformers trl peft bitsandbytes rich
+
+   # 3. Interactive Python REPL (variables & traces remain in live kernel memory)
+   colab repl -s rp-explore
+
+   # 4. (Optional) Connect browser Web Notebook directly to the CLI VM
+   colab url -s rp-explore --open
+
+   # 5. Deallocate VM when finished
+   colab stop -s rp-explore
+   ```
+
 ---
 
 ## relevant documents
 
 * [README.md](file:///home/avreymi/reasoning-pruning/README.md) — Quickstart guide and CLI command documentation.
+* [wiki/index.md](file:///home/avreymi/reasoning-pruning/wiki/index.md) — Related-work wiki: CoT compression methods, overthinking taxonomies, and contrast with this repo's $(x \to y)$ auditor.
 * [code-as-tools SKILL.md](file:///home/avreymi/dotfiles/skills/code-as-tools/SKILL.md) — Core authoring principles for composable research tools.
 * [coding-principles SKILL.md](file:///home/avreymi/dotfiles/skills/coding-principles/SKILL.md) — Project-wide coding and naming invariants.
-* [colab-cli SKILL.md](file:///home/avreymi/dotfiles/skills/colab-cli/SKILL.md) — Google Colab CLI compute workflows.
+* [colab-cli SKILL.md](file:///home/avreymi/dotfiles/skills/colab-cli/SKILL.md) — Google Colab CLI compute & interactive exploration workflows.
 * [project-agent-systems SKILL.md](file:///home/avreymi/dotfiles/skills/project-agent-systems/SKILL.md) — Agent system standards and conventions.
 
 ---
 
-## Status remember to update it when you make changes
+## Status - remember to update it when you make changes
 
 * Core library implemented with all 9 primary tools (`generate_trace`, `find_first_skip`, `extract_transition`, `rollout_pruning`, `build_pt_dataset`, `train_pruning_model`, `evaluate_models`, `render_trace_diff`, `launch_viewer`, `push_dataset_to_hf`, `push_model_to_hf`).
 * Full unit test suite passing (13/13 tests) via `uv run pytest`.
-* Interactive exploration notebook initialized in `notebooks/01_explore_pruning.ipynb`.
-* Next milestone: Conduct initial benchmark data generation runs on GSM8K and QLoRA fine-tuning in Colab-CLI.
+* Empirical exploration completed across 6 reasoning task families on Google Colab GPU runtimes for Google Gemma reasoning models (`google/gemma-4-12B-it` / Gemma family).
+* Identified the 6 core overthinking archetypes (Conversational Preamble, Question Restatement, Axiom Restatement, Redundant Verification Loops, Null Action Narration, Encyclopedic Detours).
+* Consolidated all exploration, overthinking auditing, visual trace diffing, multi-depth rollout, and transition dataset extraction into the interactive notebook [01_explore_pruning.ipynb](file:///home/avreymi/reasoning-pruning/notebooks/01_explore_pruning.ipynb).
+* Related-work wiki initialized at [wiki/index.md](file:///home/avreymi/reasoning-pruning/wiki/index.md): 14 sources (10 full-text, 4 abstract-only) and 4 synthesis pages. No ingested published paper uses a first-skippable-span auditor plus local $(x \to y)$ pairs.
+* Next milestone: Scale automated dataset generation across the full QA spectrum and launch QLoRA fine-tuning.
 
 ---
 
