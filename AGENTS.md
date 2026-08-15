@@ -167,6 +167,11 @@ Each code file **must** include a short description (no more than 4–5 sentence
 - Its connection to the main **code flow** of the project.
 - The intended **execution environment** (where this code will run, as defined in the **Project Goal** section).
 
+### Full Observability & Live Execution Invariant (Strict Rule)
+- **Zero Mock / Hardcoded Data in Notebooks & Tools**: Research, exploration, and data generation notebooks MUST ALWAYS call and execute the real library tools (`generate_trace`, `find_first_skip`, `extract_transition`, `rollout_pruning`, `build_pt_dataset`).
+- **Complete Pipeline Transparency**: Every step from prompt to generated trace, decision parsing, visual diffing, and transition extraction must be executed live through the actual functions. If prompts, models, segmenters, or auditor rubrics change, the notebook must immediately reflect those real changes.
+- **Never Fabricate Traces or Decisions**: Writing hardcoded lists of steps, simulated decisions, or mock transition objects in place of live tool executions is strictly prohibited. The notebook is a live experimentation and observability environment, not a static mockup.
+
 Remember to update important documents, remember to update your memory remember to update the relevant skills (if needed).
 Shared documents are super super important, they allow you to learn from mistakes and move forward. Remember to use them and update them.
 
