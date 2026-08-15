@@ -44,8 +44,8 @@ Inside Google Colab terminal, SSH, or local terminal:
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clone & install dependencies
-git clone https://github.com/avreymi/reasoning-pruning.git
-cd reasoning-pruning
+git clone https://github.com/avrymi-asraf/reasoning-pruning-agy.git
+cd reasoning-pruning-agy
 uv sync --extra dev
 ```
 
