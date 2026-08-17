@@ -1,12 +1,18 @@
 """Reasoning Pruning: Train reasoning models on their own pruned transition paths.
 
 Big Picture Role: Package root exposing the public composable toolset and core dataclasses.
-Code Flow Connection: Provides top-level imports (`from reasoning_pruning import generate_trace, ...`)
-for notebook experimentation and external scripts.
+Code Flow Connection: Provides top-level imports (`from reasoning_pruning import generate_trace, load_spectrum_benchmarks, ...`)
+for notebook experimentation, research analysis, and CLI processes.
 Execution Environment: Runs universally in local Python, Google Colab notebooks, and CLI processes.
 """
 
-from reasoning_pruning.dataset import build_pt_dataset, load_pt_dataset
+from reasoning_pruning.dataset import (
+    BENCHMARK_REGISTRY,
+    build_pt_dataset,
+    load_benchmark_questions,
+    load_pt_dataset,
+    load_spectrum_benchmarks,
+)
 from reasoning_pruning.decision import find_first_skip
 from reasoning_pruning.evaluation import evaluate_models
 from reasoning_pruning.generation import (
@@ -16,6 +22,7 @@ from reasoning_pruning.generation import (
 )
 from reasoning_pruning.hub import push_dataset_to_hf, push_model_to_hf
 from reasoning_pruning.segmenter import segment_steps
+from reasoning_pruning.training import train_pruning_model
 from reasoning_pruning.types import (
     EvalResult,
     EvalSample,
@@ -37,6 +44,8 @@ __all__ = [
     "find_first_skip",
     "extract_transition",
     "rollout_pruning",
+    "load_benchmark_questions",
+    "load_spectrum_benchmarks",
     "build_pt_dataset",
     "load_pt_dataset",
     "train_pruning_model",
@@ -47,6 +56,7 @@ __all__ = [
     "push_dataset_to_hf",
     "push_model_to_hf",
     "segment_steps",
+    "BENCHMARK_REGISTRY",
     # Types
     "ReasoningTrace",
     "PruneDecision",

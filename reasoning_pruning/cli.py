@@ -16,7 +16,12 @@ from typing import Optional
 import typer
 from rich.console import Console
 
-from reasoning_pruning.dataset import build_pt_dataset, load_pt_dataset
+from reasoning_pruning.dataset import (
+    build_pt_dataset,
+    load_benchmark_questions,
+    load_pt_dataset,
+    load_spectrum_benchmarks,
+)
 from reasoning_pruning.decision import find_first_skip
 from reasoning_pruning.evaluation import evaluate_models
 from reasoning_pruning.generation import generate_trace, rollout_pruning
@@ -38,25 +43,40 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 @datagen_app.command("try")
 def datagen_try(
-    question: str = typer.Option(
-        "Janet buys 3 packs of 12 eggs. She bakes 2 cakes using 4 eggs each. How many eggs does she have left?",
+    question: Optional[str] = typer.Option(
+        None,
         "--question",
         "-q",
-        help="Input question to test pruning on.",
+        help="Input question to test pruning on (defaults to benchmark sample if not set).",
+    ),
+    benchmark: Optional[str] = typer.Option(
+        "gsm8k",
+        "--benchmark",
+        "-b",
+        help="Benchmark name to sample question from (e.g. gsm8k, arc_challenge, commonsense_qa, hotpot_qa, svamp).",
     ),
     model_g: str = typer.Option("gpt-4o-mini", "--model-g", help="Generator model name."),
     model_d: str = typer.Option("gpt-4o-mini", "--model-d", help="Decision model name."),
     max_depth: int = typer.Option(2, "--max-depth", "-d", help="Maximum recursive pruning depth."),
 ):
-    """Test pruning rollout on a question and visualize the diff in the terminal."""
-    console.print(f"[bold green]Running pruning rollout on:[/bold green] {question}\n")
+    """Test pruning rollout on a real benchmark question and visualize the diff in the terminal."""
+    target_q = question
+    if not target_q:
+        samples = load_benchmark_questions(dataset_name=benchmark, num_samples=1)
+        if samples:
+            target_q = samples[0]["question"]
+            console.print(f"[bold cyan]Selected question from {samples[0]['dataset']} ({samples[0]['category']}):[/bold cyan]")
+        else:
+            target_q = "Janet buys 3 packs of 12 eggs. She bakes 2 cakes using 4 eggs each. How many eggs does she have left?"
+
+    console.print(f"[bold green]Running pruning rollout on:[/bold green] {target_q}\n")
 
     def _on_step(depth: int, trace, decision):
         console.print(f"[bold cyan]=== Depth {depth} ===[/bold cyan]")
         console.print(render_trace_diff(trace, decision, as_html=False))
 
     rollout = rollout_pruning(
-        question=question,
+        question=target_q,
         generator_model=model_g,
         decision_model=model_d,
         max_depth=max_depth,
@@ -73,7 +93,7 @@ def datagen_try(
 
 @datagen_app.command("build")
 def datagen_build(
-    dataset: str = typer.Option("gsm8k", "--dataset", help="Source dataset name or path (e.g. gsm8k)."),
+    dataset: str = typer.Option("gsm8k", "--dataset", help="Source dataset name or alias (e.g. gsm8k, arc_challenge, spectrum)."),
     split: str = typer.Option("train", "--split", help="Dataset split."),
     model_g: str = typer.Option("gpt-4o-mini", "--model-g", help="Generator model name."),
     model_d: str = typer.Option("gpt-4o-mini", "--model-d", help="Decision model name."),
@@ -86,8 +106,13 @@ def datagen_build(
     """Build a full Pruning-Transition dataset and optionally push to Hugging Face."""
     console.print(f"[bold]Building PT dataset from '{dataset}' using G='{model_g}', D='{model_d}'...[/bold]")
 
+    if dataset.lower() == "spectrum":
+        question_source = load_spectrum_benchmarks(samples_per_benchmark=max_samples or 5)
+    else:
+        question_source = dataset
+
     ds = build_pt_dataset(
-        questions=dataset,
+        questions=question_source,
         generator_model=model_g,
         decision_model=model_d,
         max_depth=max_depth,

@@ -146,11 +146,11 @@
 
 ## Status - remember to update it when you make changes
 
-* Core library implemented with all 9 primary tools (`generate_trace`, `find_first_skip`, `extract_transition`, `rollout_pruning`, `build_pt_dataset`, `train_pruning_model`, `evaluate_models`, `render_trace_diff`, `launch_viewer`, `push_dataset_to_hf`, `push_model_to_hf`).
-* Full unit test suite passing (13/13 tests) via `uv run pytest`.
+* Core library implemented with primary composable tools (`generate_trace`, `find_first_skip`, `extract_transition`, `rollout_pruning`, `load_benchmark_questions`, `load_spectrum_benchmarks`, `build_pt_dataset`, `train_pruning_model`, `evaluate_models`, `render_trace_diff`, `launch_viewer`, `push_dataset_to_hf`, `push_model_to_hf`).
+* Full unit test suite passing (19/19 tests) via `uv run pytest`.
 * Empirical exploration completed across 6 reasoning task families on Google Colab GPU runtimes for Google Gemma reasoning models (`google/gemma-4-12B-it` / Gemma family).
 * Identified the 6 core overthinking archetypes (Conversational Preamble, Question Restatement, Axiom Restatement, Redundant Verification Loops, Null Action Narration, Encyclopedic Detours).
-* Consolidated all exploration, overthinking auditing, visual trace diffing, multi-depth rollout, and transition dataset extraction into the interactive notebook [01_explore_pruning.ipynb](file:///home/avreymi/reasoning-pruning/notebooks/01_explore_pruning.ipynb).
+* Consolidated all exploration, overthinking auditing, visual trace diffing, multi-depth rollout, and transition dataset extraction from real benchmark datasets (`openai/gsm8k`, `allenai/ai2_arc`, `tau/commonsense_qa`, `hotpotqa/hotpot_qa`, `ChilleD/SVAMP`, `rajpurkar/squad_v2`) into the interactive notebook [01_explore_pruning.ipynb](file:///home/avreymi/reasoning-pruning/notebooks/01_explore_pruning.ipynb).
 * Related-work wiki initialized at [wiki/index.md](file:///home/avreymi/reasoning-pruning/wiki/index.md): 14 sources (10 full-text, 4 abstract-only) and 4 synthesis pages. No ingested published paper uses a first-skippable-span auditor plus local $(x \to y)$ pairs.
 * Next milestone: Scale automated dataset generation across the full QA spectrum and launch QLoRA fine-tuning.
 
