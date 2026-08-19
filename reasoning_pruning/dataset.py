@@ -537,21 +537,32 @@ def build_pt_dataset(
     return ds
 
 
-def load_pt_dataset(path_or_repo: str, split: Optional[str] = None) -> datasets.Dataset:
+def load_pt_dataset(
+    path_or_repo: str,
+    split: Optional[str] = None,
+    token: Optional[str] = None,
+    **kwargs: Any,
+) -> datasets.Dataset:
     """Load a Pruning-Transition dataset from local disk or Hugging Face Hub.
 
     Parameters:
         path_or_repo: Local folder path or Hugging Face dataset identifier (e.g. 'username/rp-dataset').
         split: Optional split name if loading from Hugging Face.
+        token: Optional Hugging Face access token for private repositories.
+        **kwargs: Additional parameters passed to `datasets.load_dataset`.
 
     Returns:
         A loaded `datasets.Dataset` instance.
     """
+    hf_token = token or os.environ.get("HF_TOKEN")
     try:
         # Try local disk arrow first
         return datasets.load_from_disk(path_or_repo)
     except Exception:
         # Try Hugging Face hub / json file
         if split:
-            return datasets.load_dataset(path_or_repo, split=split)
-        return datasets.load_dataset(path_or_repo)["train"]
+            return datasets.load_dataset(path_or_repo, split=split, token=hf_token, **kwargs)
+        ds = datasets.load_dataset(path_or_repo, token=hf_token, **kwargs)
+        if isinstance(ds, dict) or hasattr(ds, "__getitem__"):
+            return ds["train"] if "train" in ds else list(ds.values())[0]
+        return ds

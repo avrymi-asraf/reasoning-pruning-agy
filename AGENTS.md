@@ -135,12 +135,12 @@
 
 ## relevant documents
 
-* [README.md](file:///home/avreymi/reasoning-pruning/README.md) — Quickstart guide and CLI command documentation.
-* [wiki/index.md](file:///home/avreymi/reasoning-pruning/wiki/index.md) — Related-work wiki: CoT compression methods, overthinking taxonomies, and contrast with this repo's $(x \to y)$ auditor.
-* [code-as-tools SKILL.md](file:///home/avreymi/dotfiles/skills/code-as-tools/SKILL.md) — Core authoring principles for composable research tools.
-* [coding-principles SKILL.md](file:///home/avreymi/dotfiles/skills/coding-principles/SKILL.md) — Project-wide coding and naming invariants.
-* [colab-cli SKILL.md](file:///home/avreymi/dotfiles/skills/colab-cli/SKILL.md) — Google Colab CLI compute & interactive exploration workflows.
-* [project-agent-systems SKILL.md](file:///home/avreymi/dotfiles/skills/project-agent-systems/SKILL.md) — Agent system standards and conventions.
+* [README.md](file:///home/avreymi/code/reasoning-pruning-agy/README.md) — Quickstart guide and CLI command documentation.
+* [wiki/index.md](file:///home/avreymi/code/reasoning-pruning-agy/wiki/index.md) — Related-work wiki: CoT compression methods, overthinking taxonomies, and contrast with this repo's $(x \to y)$ auditor.
+* [code-as-tools SKILL.md](file:///home/avreymi/code/reasoning-pruning-agy/.agents/skills/code-as-tools/SKILL.md) — Core authoring principles for composable research tools.
+* [coding-principles SKILL.md](file:///home/avreymi/code/reasoning-pruning-agy/.agents/skills/coding-principles/SKILL.md) — Project-wide coding and naming invariants.
+* [colab-cli SKILL.md](file:///home/avreymi/code/reasoning-pruning-agy/.agents/skills/colab-cli/SKILL.md) — Google Colab CLI compute, secrets (`google.colab.userdata`), and interactive exploration workflows.
+* [project-agent-systems SKILL.md](file:///home/avreymi/code/reasoning-pruning-agy/.agents/skills/project-agent-systems/SKILL.md) — Agent system standards and conventions.
 
 ---
 
@@ -151,7 +151,8 @@
 * Empirical exploration completed across 6 reasoning task families on Google Colab GPU runtimes for Google Gemma reasoning models (`google/gemma-4-12B-it` / Gemma family).
 * Identified the 6 core overthinking archetypes (Conversational Preamble, Question Restatement, Axiom Restatement, Redundant Verification Loops, Null Action Narration, Encyclopedic Detours).
 * Complete end-to-end **Data Creation Pipeline validated live** across benchmark streaming, step generation, decision auditing, transition extraction, multi-depth rollout pruning, dataset assembly, schema/integrity constraints validation, and Hugging Face Hub synchronization.
-* Updated and verified the interactive data creation and exploration laboratory in [`notebooks/01_explore_pruning.ipynb`](file:///home/avreymi/code/reasoning-pruning-agy/notebooks/01_explore_pruning.ipynb).
+* Updated and verified the interactive data creation and exploration laboratory in [`notebooks/01_explore_pruning.ipynb`](file:///home/avreymi/code/reasoning-pruning-agy/notebooks/01_explore_pruning.ipynb) with seamless Google Colab Secrets (`google.colab.userdata`) auto-synchronization to `os.environ`.
+* Documented Google Colab secrets management patterns across skills (`colab-cli`, `code-as-tools`, `create-qa-spectrum`) and added dedicated reference [`references/secrets-and-credentials.md`](file:///home/avreymi/code/reasoning-pruning-agy/.agents/skills/colab-cli/references/secrets-and-credentials.md).
 * Related-work wiki initialized at [`wiki/index.md`](file:///home/avreymi/code/reasoning-pruning-agy/wiki/index.md): 14 sources (10 full-text, 4 abstract-only) and 4 synthesis pages.
 * Next milestone: Scale automated dataset generation across the full QA spectrum and launch QLoRA fine-tuning.
 
@@ -171,7 +172,7 @@ Each code file **must** include a short description (no more than 4–5 sentence
 ### Full Observability & Live Execution Invariant (Strict Rule)
 - **Zero Mock / Hardcoded Data in Notebooks & Tools**: Research, exploration, and data generation notebooks MUST ALWAYS call and execute the real library tools (`generate_trace`, `find_first_skip`, `extract_transition`, `rollout_pruning`, `build_pt_dataset`).
 - **Complete Pipeline Transparency**: Every step from prompt to generated trace, decision parsing, visual diffing, and transition extraction must be executed live through the actual functions. If prompts, models, segmenters, or auditor rubrics change, the notebook must immediately reflect those real changes.
-- **Never Fabricate Traces or Decisions**: Writing hardcoded lists of steps, simulated decisions, or mock transition objects in place of live tool executions is strictly prohibited. The notebook is a live experimentation and observability environment, not a static mockup.
+- **Integration & CLI Testing Over Unit Tests**: Do NOT run or create isolated/trivial unit tests (`pytest`, `unittest`). Instead, verify code through live CLI commands (`uv run rp ...`), real end-to-end integration tests, and notebook tool executions with authentic data and models.
 
 Remember to update important documents, remember to update your memory remember to update the relevant skills (if needed).
 Shared documents are super super important, they allow you to learn from mistakes and move forward. Remember to use them and update them.
