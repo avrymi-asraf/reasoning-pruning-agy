@@ -150,8 +150,9 @@
 * Full unit test suite passing (19/19 tests) via `uv run pytest`.
 * Empirical exploration completed across 6 reasoning task families on Google Colab GPU runtimes for Google Gemma reasoning models (`google/gemma-4-12B-it` / Gemma family).
 * Identified the 6 core overthinking archetypes (Conversational Preamble, Question Restatement, Axiom Restatement, Redundant Verification Loops, Null Action Narration, Encyclopedic Detours).
-* Consolidated all exploration, overthinking auditing, visual trace diffing, multi-depth rollout, and transition dataset extraction from real benchmark datasets (`openai/gsm8k`, `allenai/ai2_arc`, `tau/commonsense_qa`, `hotpotqa/hotpot_qa`, `ChilleD/SVAMP`, `rajpurkar/squad_v2`) into the interactive notebook [01_explore_pruning.ipynb](file:///home/avreymi/reasoning-pruning/notebooks/01_explore_pruning.ipynb).
-* Related-work wiki initialized at [wiki/index.md](file:///home/avreymi/reasoning-pruning/wiki/index.md): 14 sources (10 full-text, 4 abstract-only) and 4 synthesis pages. No ingested published paper uses a first-skippable-span auditor plus local $(x \to y)$ pairs.
+* Complete end-to-end **Data Creation Pipeline validated live** across benchmark streaming, step generation, decision auditing, transition extraction, multi-depth rollout pruning, dataset assembly, schema/integrity constraints validation, and Hugging Face Hub synchronization.
+* Updated and verified the interactive data creation and exploration laboratory in [`notebooks/01_explore_pruning.ipynb`](file:///home/avreymi/code/reasoning-pruning-agy/notebooks/01_explore_pruning.ipynb).
+* Related-work wiki initialized at [`wiki/index.md`](file:///home/avreymi/code/reasoning-pruning-agy/wiki/index.md): 14 sources (10 full-text, 4 abstract-only) and 4 synthesis pages.
 * Next milestone: Scale automated dataset generation across the full QA spectrum and launch QLoRA fine-tuning.
 
 ---
