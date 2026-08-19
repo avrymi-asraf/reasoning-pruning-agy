@@ -55,8 +55,8 @@ def datagen_try(
         "-b",
         help="Benchmark name to sample question from (e.g. gsm8k, arc_challenge, commonsense_qa, hotpot_qa, svamp).",
     ),
-    model_g: str = typer.Option("gpt-4o-mini", "--model-g", help="Generator model name."),
-    model_d: str = typer.Option("gpt-4o-mini", "--model-d", help="Decision model name."),
+    model_g: Optional[str] = typer.Option(None, "--model-g", help="Generator model name (defaults to configured provider)."),
+    model_d: Optional[str] = typer.Option(None, "--model-d", help="Decision model name (defaults to configured provider)."),
     max_depth: int = typer.Option(2, "--max-depth", "-d", help="Maximum recursive pruning depth."),
 ):
     """Test pruning rollout on a real benchmark question and visualize the diff in the terminal."""
@@ -95,8 +95,8 @@ def datagen_try(
 def datagen_build(
     dataset: str = typer.Option("gsm8k", "--dataset", help="Source dataset name or alias (e.g. gsm8k, arc_challenge, spectrum)."),
     split: str = typer.Option("train", "--split", help="Dataset split."),
-    model_g: str = typer.Option("gpt-4o-mini", "--model-g", help="Generator model name."),
-    model_d: str = typer.Option("gpt-4o-mini", "--model-d", help="Decision model name."),
+    model_g: Optional[str] = typer.Option(None, "--model-g", help="Generator model name (defaults to configured provider)."),
+    model_d: Optional[str] = typer.Option(None, "--model-d", help="Decision model name (defaults to configured provider)."),
     max_depth: int = typer.Option(3, "--max-depth", help="Max pruning depth."),
     max_samples: Optional[int] = typer.Option(None, "--max-samples", help="Max questions to process."),
     max_workers: int = typer.Option(4, "--workers", help="Worker threads for concurrent queries."),

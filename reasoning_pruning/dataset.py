@@ -20,6 +20,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import datasets
 from tqdm import tqdm
 
+from reasoning_pruning.config import (
+    get_default_decision_model,
+    get_default_generator_model,
+)
 from reasoning_pruning.generation import rollout_pruning
 from reasoning_pruning.types import TransitionExample
 
@@ -380,8 +384,8 @@ def load_spectrum_benchmarks(
 
 def build_pt_dataset(
     questions: Union[List[Union[str, Dict[str, Any]]], datasets.Dataset, str],
-    generator_model: str = "gpt-4o-mini",
-    decision_model: str = "gpt-4o-mini",
+    generator_model: Optional[str] = None,
+    decision_model: Optional[str] = None,
     max_depth: int = 3,
     max_samples: Optional[int] = None,
     max_workers: int = 4,
@@ -407,8 +411,8 @@ def build_pt_dataset(
             - A list of question strings or structured question dictionaries (from `load_benchmark_questions`).
             - A Hugging Face `Dataset` instance.
             - A Hugging Face dataset identifier string (e.g. 'gsm8k', 'openai/gsm8k').
-        generator_model: Model name for generator G.
-        decision_model: Model name for decision model D.
+        generator_model: Model name for generator G (defaults to configured default generator).
+        decision_model: Model name for decision model D (defaults to configured default auditor).
         max_depth: Maximum pruning depth per question.
         max_samples: Optional cap on the number of questions to process.
         max_workers: Thread pool concurrency for parallel LLM queries.
@@ -426,6 +430,9 @@ def build_pt_dataset(
         >>> len(ds) >= 0
         True
     """
+    g_model = generator_model or get_default_generator_model()
+    d_model = decision_model or get_default_decision_model()
+
     # 1. Normalize question list and metadata
     question_entries: List[Dict[str, Any]] = []
 
@@ -481,8 +488,8 @@ def build_pt_dataset(
         try:
             res = rollout_pruning(
                 question=q_str,
-                generator_model=generator_model,
-                decision_model=decision_model,
+                generator_model=g_model,
+                decision_model=d_model,
                 max_depth=max_depth,
                 api_key=api_key,
                 **kwargs,

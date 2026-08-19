@@ -6,6 +6,12 @@ for notebook experimentation, research analysis, and CLI processes.
 Execution Environment: Runs universally in local Python, Google Colab notebooks, and CLI processes.
 """
 
+from reasoning_pruning.config import (
+    get_default_decision_model,
+    get_default_generator_model,
+    get_default_model,
+    init_environment,
+)
 from reasoning_pruning.dataset import (
     BENCHMARK_REGISTRY,
     build_pt_dataset,
@@ -38,8 +44,11 @@ from reasoning_pruning.visualizer import (
     render_trace_diff,
 )
 
+# Auto-initialize environment variables and Colab secrets
+init_environment()
+
 __all__ = [
-    # Tools
+    # Tools & Config
     "generate_trace",
     "find_first_skip",
     "extract_transition",
@@ -57,6 +66,10 @@ __all__ = [
     "push_model_to_hf",
     "segment_steps",
     "BENCHMARK_REGISTRY",
+    "get_default_model",
+    "get_default_generator_model",
+    "get_default_decision_model",
+    "init_environment",
     # Types
     "ReasoningTrace",
     "PruneDecision",
@@ -68,3 +81,4 @@ __all__ = [
 ]
 
 __version__ = "0.1.0"
+

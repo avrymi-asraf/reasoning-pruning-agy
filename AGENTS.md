@@ -147,12 +147,10 @@
 ## Status - remember to update it when you make changes
 
 * Core library implemented with primary composable tools (`generate_trace`, `find_first_skip`, `extract_transition`, `rollout_pruning`, `load_benchmark_questions`, `load_spectrum_benchmarks`, `build_pt_dataset`, `train_pruning_model`, `evaluate_models`, `render_trace_diff`, `launch_viewer`, `push_dataset_to_hf`, `push_model_to_hf`).
+* Dynamic default model resolution implemented in `reasoning_pruning.config` (`get_default_model`, `get_default_generator_model`, `get_default_decision_model`), automatically picking active providers (`gemini/gemini-2.5-flash`, `gpt-4o-mini`, `huggingface/Qwen/Qwen2.5-7B-Instruct`, etc.) based on available credentials without crashing when OpenAI keys are omitted.
 * Full unit test suite passing (19/19 tests) via `uv run pytest`.
-* Empirical exploration completed across 6 reasoning task families on Google Colab GPU runtimes for Google Gemma reasoning models (`google/gemma-4-12B-it` / Gemma family).
-* Identified the 6 core overthinking archetypes (Conversational Preamble, Question Restatement, Axiom Restatement, Redundant Verification Loops, Null Action Narration, Encyclopedic Detours).
-* Complete end-to-end **Data Creation Pipeline validated live** across benchmark streaming, step generation, decision auditing, transition extraction, multi-depth rollout pruning, dataset assembly, schema/integrity constraints validation, and Hugging Face Hub synchronization.
-* Updated and verified the interactive data creation and exploration laboratory in [`notebooks/01_explore_pruning.ipynb`](file:///home/avreymi/code/reasoning-pruning-agy/notebooks/01_explore_pruning.ipynb) with seamless Google Colab Secrets (`google.colab.userdata`) auto-synchronization to `os.environ`.
-* Documented Google Colab secrets management patterns across skills (`colab-cli`, `code-as-tools`, `create-qa-spectrum`) and added dedicated reference [`references/secrets-and-credentials.md`](file:///home/avreymi/code/reasoning-pruning-agy/.agents/skills/colab-cli/references/secrets-and-credentials.md).
+* End-to-end live generation, decision auditing, transition extraction, and multi-depth rollout pruning verified live on Google Colab GPU runtime (`rp-lab`).
+* Interactive exploration notebook [`notebooks/01_explore_pruning.ipynb`](file:///home/avreymi/code/reasoning-pruning-agy/notebooks/01_explore_pruning.ipynb) synchronized with robust Colab bootstrapping, dynamic model resolution, and full completion token limits.
 * Related-work wiki initialized at [`wiki/index.md`](file:///home/avreymi/code/reasoning-pruning-agy/wiki/index.md): 14 sources (10 full-text, 4 abstract-only) and 4 synthesis pages.
 * Next milestone: Scale automated dataset generation across the full QA spectrum and launch QLoRA fine-tuning.
 

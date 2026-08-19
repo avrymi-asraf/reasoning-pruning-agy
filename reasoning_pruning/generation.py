@@ -15,6 +15,10 @@ from typing import Any, Callable, Dict, List, Optional
 
 import litellm
 
+from reasoning_pruning.config import (
+    get_default_decision_model,
+    get_default_generator_model,
+)
 from reasoning_pruning.decision import find_first_skip
 from reasoning_pruning.segmenter import segment_steps
 from reasoning_pruning.types import (
@@ -34,7 +38,7 @@ DEFAULT_SYSTEM_PROMPT = (
 
 def generate_trace(
     question: str,
-    model: str = "gpt-4o-mini",
+    model: Optional[str] = None,
     prefix: str = "",
     system_prompt: Optional[str] = None,
     max_tokens: int = 1024,
@@ -74,6 +78,7 @@ def generate_trace(
         >>> len(trace.steps) > 0
         True
     """
+    model_name = model or get_default_generator_model()
     sys_msg = system_prompt or DEFAULT_SYSTEM_PROMPT
 
     user_content = question
@@ -90,7 +95,7 @@ def generate_trace(
 
     try:
         response = litellm.completion(
-            model=model,
+            model=model_name,
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
@@ -101,7 +106,7 @@ def generate_trace(
         token_count = usage.completion_tokens if usage else len(raw_text.split())
 
     except Exception as e:
-        logger.error(f"Generation failed with model {model}: {e}")
+        logger.error(f"Generation failed with model {model_name}: {e}")
         raw_text = f"Error during generation: {e}"
         token_count = 0
 
@@ -113,7 +118,7 @@ def generate_trace(
         steps=steps,
         full_text=raw_text,
         token_count=token_count,
-        generator_model=model,
+        generator_model=model_name,
         metadata={"temperature": temperature, "max_tokens": max_tokens},
     )
 
@@ -158,25 +163,24 @@ def extract_transition(
     else:
         full_prefix = useful_prefix_str
 
-    input_x = f"{trace.question.strip()}\n\n{full_prefix}".strip() if full_prefix else trace.question.strip()
+    # Input x represents question plus all useful context prior to the skip
+    input_x = f"{trace.question}\n{full_prefix}".strip() if full_prefix else trace.question
 
-    # Next useful step after skipped span
-    next_idx = decision.skip_end_idx + 1
-    if next_idx < len(trace.steps):
-        target_y = trace.steps[next_idx]
-    else:
-        # If skip occurred at the very end and no next step exists, cannot form next-step target
-        return None
+    # Target y is the first useful deduction step after the skipped span
+    target_y = decision.next_step
 
-    row_id = example_id or f"ex_d{depth}_{abs(hash(input_x)) % 1000000}"
+    # Extract all skipped text
+    skipped_span_steps = trace.steps[decision.skip_start_idx : decision.skip_end_idx + 1]
+
+    ex_id = example_id or f"trans_{trace.question[:12].strip().replace(' ', '_')}_d{depth}"
 
     return TransitionExample(
-        id=row_id,
+        id=ex_id,
         question=trace.question,
         input_x=input_x,
         target_y=target_y,
         depth=depth,
-        skipped_steps=decision.skipped_steps,
+        skipped_steps=decision.skipped_steps if decision.skipped_steps else skipped_span_steps,
         skip_reason=decision.reason,
         generator_model=trace.generator_model,
         decision_model=decision.decision_model,
@@ -190,8 +194,8 @@ def extract_transition(
 
 def rollout_pruning(
     question: str,
-    generator_model: str = "gpt-4o-mini",
-    decision_model: str = "gpt-4o-mini",
+    generator_model: Optional[str] = None,
+    decision_model: Optional[str] = None,
     max_depth: int = 3,
     segment_mode: str = "auto",
     api_key: Optional[str] = None,
@@ -213,8 +217,8 @@ def rollout_pruning(
 
     Parameters:
         question: The input question.
-        generator_model: Model name for generator G.
-        decision_model: Model name for decision model D.
+        generator_model: Model name for generator G (defaults to configured default generator).
+        decision_model: Model name for decision model D (defaults to configured default auditor).
         max_depth: Maximum number of pruning iterations (default: 3).
         segment_mode: Step segmentation mode ('auto', 'sentences', 'lines').
         api_key: Optional API key for LLM calls.
@@ -224,6 +228,9 @@ def rollout_pruning(
     Returns:
         A RolloutResult containing all extracted TransitionExamples, traces, and compression metrics.
     """
+    g_model = generator_model or get_default_generator_model()
+    d_model = decision_model or get_default_decision_model()
+
     transitions: List[TransitionExample] = []
     traces: List[ReasoningTrace] = []
     decisions: List[PruneDecision] = []
@@ -236,7 +243,7 @@ def rollout_pruning(
         # 1. Generate reasoning from current context
         trace = generate_trace(
             question=question,
-            model=generator_model,
+            model=g_model,
             prefix=current_prefix,
             segment_mode=segment_mode,
             api_key=api_key,
@@ -250,7 +257,7 @@ def rollout_pruning(
         # 2. Find first safe skip
         decision = find_first_skip(
             trace=trace,
-            decision_model=decision_model,
+            decision_model=d_model,
             api_key=api_key,
             **kwargs,
         )

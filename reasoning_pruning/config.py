@@ -1,0 +1,130 @@
+"""Configuration and environment initialization for reasoning_pruning.
+
+Big Picture Role: Manages runtime configuration, environment variable synchronization,
+Colab secrets (google.colab.userdata), and dynamic default LLM model resolution for
+generators and decision auditors.
+Code Flow Connection: Executed automatically on package import to ensure all downstream
+tools (generate_trace, find_first_skip, rollout_pruning, build_pt_dataset) have valid
+API credentials and sensible default models configured.
+Execution Environment: Runs seamlessly across local development environments, Google Colab
+runtimes (T4/A100/L4), and remote compute nodes.
+"""
+
+import logging
+import os
+import sys
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+# Canonical default models per provider
+PROVIDER_DEFAULT_MODELS = {
+    "gemini": "gemini/gemini-2.5-flash",
+    "openai": "gpt-4o-mini",
+    "anthropic": "claude-3-5-haiku-20241022",
+    "deepseek": "deepseek/deepseek-chat",
+    "huggingface": "huggingface/Qwen/Qwen2.5-7B-Instruct",
+}
+
+_ENV_INITIALIZED = False
+
+
+def init_environment(force: bool = False) -> None:
+    """Initialize and synchronize environment variables and credentials.
+
+    What it does:
+        1. Auto-loads keys from `.env` files across standard search locations.
+        2. Normalizes token aliases (e.g. GEMINI_TOKEN -> GEMINI_API_KEY, HUGGINGFACE_TOKEN -> HF_TOKEN).
+    """
+    global _ENV_INITIALIZED
+    if _ENV_INITIALIZED and not force:
+        return
+
+    # 1. Search and load .env files
+    env_paths = [
+        "/content/.env",
+        "/content/reasoning-pruning-agy/.env",
+        ".env",
+        os.path.join(os.getcwd(), ".env"),
+    ]
+    for env_path in env_paths:
+        if os.path.exists(env_path):
+            try:
+                from dotenv import load_dotenv
+
+                load_dotenv(env_path, override=False)
+            except ImportError:
+                try:
+                    with open(env_path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith("#") and "=" in line:
+                                k, v = line.split("=", 1)
+                                k = k.strip()
+                                v = v.strip().strip("'\"")
+                                if k and k not in os.environ:
+                                    os.environ[k] = v
+                except Exception:
+                    pass
+
+    # 2. Normalize aliases
+    if "GEMINI_TOKEN" in os.environ and "GEMINI_API_KEY" not in os.environ:
+        os.environ["GEMINI_API_KEY"] = os.environ["GEMINI_TOKEN"]
+
+    if "HUGGINGFACE_TOKEN" in os.environ and "HF_TOKEN" not in os.environ:
+        os.environ["HF_TOKEN"] = os.environ["HUGGINGFACE_TOKEN"]
+
+    _ENV_INITIALIZED = True
+
+
+def get_default_model(role: str = "generator") -> str:
+    """Resolve the optimal default LLM model for a given role based on available credentials.
+
+    Parameters:
+        role: "generator" (for model G) or "decision" (for auditor D).
+
+    Returns:
+        String model identifier supported by LiteLLM.
+    """
+    init_environment()
+
+    # 1. Explicit role-specific environment override
+    if role == "generator" and "RP_MODEL_G" in os.environ:
+        return os.environ["RP_MODEL_G"]
+    if role == "decision" and "RP_MODEL_D" in os.environ:
+        return os.environ["RP_MODEL_D"]
+
+    # 2. General default model override
+    if "RP_DEFAULT_MODEL" in os.environ:
+        return os.environ["RP_DEFAULT_MODEL"]
+
+    # 3. Detect by available API credentials (prioritizing Gemini & OpenAI)
+    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_TOKEN")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+    deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
+    hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+
+    if gemini_key:
+        return PROVIDER_DEFAULT_MODELS["gemini"]
+    if openai_key:
+        return PROVIDER_DEFAULT_MODELS["openai"]
+    if anthropic_key:
+        return PROVIDER_DEFAULT_MODELS["anthropic"]
+    if deepseek_key:
+        return PROVIDER_DEFAULT_MODELS["deepseek"]
+    if hf_token:
+        return PROVIDER_DEFAULT_MODELS["huggingface"]
+
+    # Default fallback
+    return PROVIDER_DEFAULT_MODELS["gemini"]
+
+
+def get_default_generator_model() -> str:
+    """Convenience accessor for default generator model G."""
+    return get_default_model(role="generator")
+
+
+def get_default_decision_model() -> str:
+    """Convenience accessor for default decision auditor model D."""
+    return get_default_model(role="decision")

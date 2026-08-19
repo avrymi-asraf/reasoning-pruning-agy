@@ -17,6 +17,7 @@ from typing import Any, Dict, Optional
 
 import litellm
 
+from reasoning_pruning.config import get_default_decision_model
 from reasoning_pruning.types import PruneDecision, ReasoningTrace
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ JSON FORMAT:
 
 def find_first_skip(
     trace: ReasoningTrace,
-    decision_model: str = "gpt-4o-mini",
+    decision_model: Optional[str] = None,
     prompt_template: Optional[str] = None,
     temperature: float = 0.0,
     api_key: Optional[str] = None,
@@ -75,8 +76,7 @@ def find_first_skip(
 
     Parameters:
         trace: The ReasoningTrace containing discrete steps.
-        decision_model: Model name/identifier supported by LiteLLM (e.g. 'gpt-4o-mini',
-            'claude-3-5-haiku-20241022', 'deepseek/deepseek-chat', 'ollama/llama3').
+        decision_model: Model name/identifier supported by LiteLLM (defaults to configured default auditor).
         prompt_template: Optional custom prompt string overriding DEFAULT_DECISION_PROMPT.
         temperature: Sampling temperature for decision model (default 0.0 for consistency).
         api_key: Optional provider API key.
@@ -93,12 +93,14 @@ def find_first_skip(
         >>> decision.skip_start_idx
         1
     """
+    d_model = decision_model or get_default_decision_model()
+
     if len(trace.steps) <= 1:
         # A 1-step or empty trace cannot be pruned while retaining an answer
         return PruneDecision(
             can_skip=False,
             reason="Trace has fewer than 2 steps; cannot prune intermediate reasoning.",
-            decision_model=decision_model,
+            decision_model=d_model,
         )
 
     # Format steps with 0-based indices for the LLM
@@ -118,20 +120,20 @@ def find_first_skip(
 
     try:
         response = litellm.completion(
-            model=decision_model,
+            model=d_model,
             messages=messages,
             temperature=temperature,
             **litellm_kwargs,
         )
         raw_text = response.choices[0].message.content or ""
-        return _parse_decision_response(raw_text, trace.steps, decision_model)
+        return _parse_decision_response(raw_text, trace.steps, d_model)
 
     except Exception as e:
-        logger.warning(f"Decision model call failed ({decision_model}): {e}")
+        logger.warning(f"Decision model call failed ({d_model}): {e}")
         return PruneDecision(
             can_skip=False,
             reason=f"Decision call error: {str(e)}",
-            decision_model=decision_model,
+            decision_model=d_model,
             raw_response=str(e),
         )
 

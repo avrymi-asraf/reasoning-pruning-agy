@@ -11,6 +11,10 @@ print("=== 1. Testing Environment Bootstrap ===", flush=True)
 IN_COLAB = "google.colab" in sys.modules or os.path.exists("/content")
 print(f"IN_COLAB: {IN_COLAB}", flush=True)
 
+# Ensure repo is in sys.path on Colab
+if IN_COLAB and "/content/reasoning-pruning-agy" not in sys.path:
+    sys.path.insert(0, "/content/reasoning-pruning-agy")
+
 # Load .env files if present
 for env_path in ["/content/.env", "/content/reasoning-pruning-agy/.env", ".env"]:
     if os.path.exists(env_path):
@@ -41,26 +45,17 @@ from reasoning_pruning.types import (
     RolloutResult,
 )
 
-hf_token = os.environ.get("HF_TOKEN")
+MODEL_G = rp.get_default_generator_model()
+MODEL_D = rp.get_default_decision_model()
+
+hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
 gemini_key = os.environ.get("GEMINI_API_KEY")
 openai_key = os.environ.get("OPENAI_API_KEY")
-
-if "RP_MODEL_G" in os.environ:
-    MODEL_G = os.environ["RP_MODEL_G"]
-elif gemini_key:
-    MODEL_G = "gemini/gemini-2.5-flash"
-elif openai_key:
-    MODEL_G = "gpt-4o-mini"
-elif hf_token:
-    MODEL_G = "huggingface/Qwen/Qwen2.5-7B-Instruct"
-else:
-    MODEL_G = "gpt-4o-mini"
-
-MODEL_D = os.environ.get("RP_MODEL_D", MODEL_G)
 
 print(f"✅ reasoning_pruning v{rp.__version__} loaded successfully.", flush=True)
 print(f"🔑 HF_TOKEN configured: {bool(hf_token)}", flush=True)
 print(f"🔑 GEMINI_API_KEY configured: {bool(gemini_key)}", flush=True)
+print(f"🔑 OPENAI_API_KEY configured: {bool(openai_key)}", flush=True)
 print(f"🤖 Generator Model (G): {MODEL_G}", flush=True)
 print(f"⚖️  Decision Auditor (D): {MODEL_D}", flush=True)
 
