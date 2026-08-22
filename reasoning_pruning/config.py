@@ -70,6 +70,7 @@ def init_environment(force: bool = False) -> None:
                     os.environ[key] = str(val).strip()
             except Exception:
                 pass
+        _normalize_aliases()
     except (ImportError, ModuleNotFoundError):
         pass
 
@@ -100,14 +101,25 @@ def init_environment(force: bool = False) -> None:
                 except Exception:
                     pass
 
-    # 3. Normalize aliases
+    # 3. Final alias normalization
+    _normalize_aliases()
+
+    _ENV_INITIALIZED = True
+
+
+def _normalize_aliases() -> None:
+    """Normalize credential aliases across different provider naming conventions."""
+    # Gemini / Google
     if "GEMINI_TOKEN" in os.environ and "GEMINI_API_KEY" not in os.environ:
         os.environ["GEMINI_API_KEY"] = os.environ["GEMINI_TOKEN"]
     if "GOOGLE_API_KEY" in os.environ and "GEMINI_API_KEY" not in os.environ:
         os.environ["GEMINI_API_KEY"] = os.environ["GOOGLE_API_KEY"]
     if "GEMINI_API_KEY" in os.environ and "GOOGLE_API_KEY" not in os.environ:
         os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
+    if "GEMINI_API_KEY" in os.environ and "GEMINI_TOKEN" not in os.environ:
+        os.environ["GEMINI_TOKEN"] = os.environ["GEMINI_API_KEY"]
 
+    # Hugging Face
     if "HUGGINGFACE_TOKEN" in os.environ and "HF_TOKEN" not in os.environ:
         os.environ["HF_TOKEN"] = os.environ["HUGGINGFACE_TOKEN"]
     if "HUGGING_FACE_HUB_TOKEN" in os.environ and "HF_TOKEN" not in os.environ:
@@ -117,14 +129,13 @@ def init_environment(force: bool = False) -> None:
     if "HF_TOKEN" in os.environ and "HUGGINGFACE_TOKEN" not in os.environ:
         os.environ["HUGGINGFACE_TOKEN"] = os.environ["HF_TOKEN"]
 
+    # Anthropic / DeepSeek / W&B
     if "ANTHROPIC_TOKEN" in os.environ and "ANTHROPIC_API_KEY" not in os.environ:
         os.environ["ANTHROPIC_API_KEY"] = os.environ["ANTHROPIC_TOKEN"]
     if "DEEPSEEK_TOKEN" in os.environ and "DEEPSEEK_API_KEY" not in os.environ:
         os.environ["DEEPSEEK_API_KEY"] = os.environ["DEEPSEEK_TOKEN"]
     if "WANDB_TOKEN" in os.environ and "WANDB_API_KEY" not in os.environ:
         os.environ["WANDB_API_KEY"] = os.environ["WANDB_TOKEN"]
-
-    _ENV_INITIALIZED = True
 
 
 def get_default_model(role: str = "generator") -> str:
