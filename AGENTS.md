@@ -65,7 +65,7 @@
 ## Running and using the code
 
 **Prerequisites:**
-* Python 3.10 to 3.12 managed via `uv`.
+* Python >=3.10 (managed via `uv` or standard Python/Colab environment).
 * LLM API Keys (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`) for decision model $D$ and API generators.
 * Hugging Face access token (`HF_TOKEN`) for dataset/model Hub sync.
 

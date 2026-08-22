@@ -3,7 +3,7 @@ name = "reasoning-pruning"
 version = "0.1.0"
 description = "Train reasoning models on their own pruned transition paths."
 readme = "README.md"
-requires-python = ">=3.10, <3.13"
+requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.7.0",
     "litellm>=1.40.0",
