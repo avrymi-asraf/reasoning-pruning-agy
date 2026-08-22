@@ -33,14 +33,47 @@ def init_environment(force: bool = False) -> None:
     """Initialize and synchronize environment variables and credentials.
 
     What it does:
-        1. Auto-loads keys from `.env` files across standard search locations.
-        2. Normalizes token aliases (e.g. GEMINI_TOKEN -> GEMINI_API_KEY, HUGGINGFACE_TOKEN -> HF_TOKEN).
+        1. Auto-loads credentials from Google Colab secrets (`google.colab.userdata`).
+        2. Auto-loads keys from `.env` files across standard search locations.
+        3. Normalizes token aliases (e.g. GEMINI_TOKEN / GOOGLE_API_KEY -> GEMINI_API_KEY, HUGGINGFACE_TOKEN -> HF_TOKEN).
     """
     global _ENV_INITIALIZED
     if _ENV_INITIALIZED and not force:
         return
 
-    # 1. Search and load .env files
+    # 1. Colab secrets via google.colab.userdata
+    try:
+        from google.colab import userdata
+
+        colab_keys = [
+            "HF_TOKEN",
+            "HUGGINGFACE_TOKEN",
+            "HUGGING_FACE_HUB_TOKEN",
+            "GEMINI_API_KEY",
+            "GOOGLE_API_KEY",
+            "GEMINI_TOKEN",
+            "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "ANTHROPIC_TOKEN",
+            "DEEPSEEK_API_KEY",
+            "DEEPSEEK_TOKEN",
+            "WANDB_API_KEY",
+            "WANDB_TOKEN",
+            "RP_MODEL_G",
+            "RP_MODEL_D",
+            "RP_DEFAULT_MODEL",
+        ]
+        for key in colab_keys:
+            try:
+                val = userdata.get(key)
+                if val and key not in os.environ:
+                    os.environ[key] = str(val).strip()
+            except Exception:
+                pass
+    except (ImportError, ModuleNotFoundError):
+        pass
+
+    # 2. Search and load .env files
     env_paths = [
         "/content/.env",
         "/content/reasoning-pruning-agy/.env",
@@ -67,12 +100,29 @@ def init_environment(force: bool = False) -> None:
                 except Exception:
                     pass
 
-    # 2. Normalize aliases
+    # 3. Normalize aliases
     if "GEMINI_TOKEN" in os.environ and "GEMINI_API_KEY" not in os.environ:
         os.environ["GEMINI_API_KEY"] = os.environ["GEMINI_TOKEN"]
+    if "GOOGLE_API_KEY" in os.environ and "GEMINI_API_KEY" not in os.environ:
+        os.environ["GEMINI_API_KEY"] = os.environ["GOOGLE_API_KEY"]
+    if "GEMINI_API_KEY" in os.environ and "GOOGLE_API_KEY" not in os.environ:
+        os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
 
     if "HUGGINGFACE_TOKEN" in os.environ and "HF_TOKEN" not in os.environ:
         os.environ["HF_TOKEN"] = os.environ["HUGGINGFACE_TOKEN"]
+    if "HUGGING_FACE_HUB_TOKEN" in os.environ and "HF_TOKEN" not in os.environ:
+        os.environ["HF_TOKEN"] = os.environ["HUGGING_FACE_HUB_TOKEN"]
+    if "HF_TOKEN" in os.environ and "HUGGING_FACE_HUB_TOKEN" not in os.environ:
+        os.environ["HUGGING_FACE_HUB_TOKEN"] = os.environ["HF_TOKEN"]
+    if "HF_TOKEN" in os.environ and "HUGGINGFACE_TOKEN" not in os.environ:
+        os.environ["HUGGINGFACE_TOKEN"] = os.environ["HF_TOKEN"]
+
+    if "ANTHROPIC_TOKEN" in os.environ and "ANTHROPIC_API_KEY" not in os.environ:
+        os.environ["ANTHROPIC_API_KEY"] = os.environ["ANTHROPIC_TOKEN"]
+    if "DEEPSEEK_TOKEN" in os.environ and "DEEPSEEK_API_KEY" not in os.environ:
+        os.environ["DEEPSEEK_API_KEY"] = os.environ["DEEPSEEK_TOKEN"]
+    if "WANDB_TOKEN" in os.environ and "WANDB_API_KEY" not in os.environ:
+        os.environ["WANDB_API_KEY"] = os.environ["WANDB_TOKEN"]
 
     _ENV_INITIALIZED = True
 
