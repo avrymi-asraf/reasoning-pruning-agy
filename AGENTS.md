@@ -27,6 +27,8 @@
 ├── README.md                   # Project overview, quickstart, and CLI instructions
 ├── AGENTS.md                   # This file (project instructions, architecture, and code rules)
 ├── .gitignore                  # Git ignore rules for environments, data, checkpoints
+├── architecture.html           # Self-contained interactive architecture map (open in browser)
+├── architecture.json           # Agent-consumable architecture graph (nodes, edges, flows)
 ├── wiki/                       # Compounding related-work wiki (Karpathy LLM-wiki layout)
 │   ├── index.md                # Scope, topic map, tensions, gaps
 │   ├── sources/                # One evidence page per paper or local artifact
@@ -147,8 +149,8 @@
 ## Status - remember to update it when you make changes
 
 * Core library implemented with primary composable tools (`generate_trace`, `find_first_skip`, `extract_transition`, `rollout_pruning`, `load_benchmark_questions`, `load_spectrum_benchmarks`, `build_pt_dataset`, `train_pruning_model`, `evaluate_models`, `render_trace_diff`, `launch_viewer`, `push_dataset_to_hf`, `push_model_to_hf`).
-* Dynamic default model resolution implemented in `reasoning_pruning.config` (`get_default_model`, `get_default_generator_model`, `get_default_decision_model`), automatically picking active providers (`gemini/gemini-2.5-flash`, `gpt-4o-mini`, `huggingface/Qwen/Qwen2.5-7B-Instruct`, etc.) based on available credentials without crashing when OpenAI keys are omitted.
-* Full unit test suite passing (19/19 tests) via `uv run pytest`.
+* Default generator model G set to canonical `google/gemma-4-12B-it` via `reasoning_pruning.config.get_default_generator_model`, with decision auditor D automatically resolving active providers (`gemini/gemini-2.5-flash`, `gpt-4o-mini`, `huggingface/Qwen/Qwen2.5-7B-Instruct`, etc.) based on available credentials.
+* Full unit test suite passing (23/23 tests) via `uv run pytest`.
 * End-to-end live generation, decision auditing, transition extraction, and multi-depth rollout pruning verified live on Google Colab GPU runtime (`rp-lab`).
 * Interactive exploration notebook [`notebooks/01_explore_pruning.ipynb`](file:///home/avreymi/code/reasoning-pruning-agy/notebooks/01_explore_pruning.ipynb) synchronized with robust Colab bootstrapping, dynamic model resolution, and full completion token limits.
 * Related-work wiki initialized at [`wiki/index.md`](file:///home/avreymi/code/reasoning-pruning-agy/wiki/index.md): 14 sources (10 full-text, 4 abstract-only) and 4 synthesis pages.

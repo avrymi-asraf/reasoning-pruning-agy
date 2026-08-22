@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reasoning Pruning — Architecture</title>
+  <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #f0c14b;
+      --accent-dim: rgba(240, 193, 75, 0.15);
+      --node-border: #484f58;
+      --highlight: #f0c14b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      max-width: 60ch;
+    }
+    .main {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+    #network {
+      flex: 1;
+      background: var(--bg);
+    }
+    .sidebar {
+      width: 360px;
+      background: var(--panel);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-section h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .flow-list {
+      list-style: none;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .flow-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .flow-item:hover {
+      background: rgba(255,255,255,0.04);
+    }
+    .flow-item.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .flow-item .flow-desc {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .steps-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .steps-panel h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .step {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #0f1117;
+      font-weight: 700;
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step-body strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+    .step-body .details {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    .empty-steps {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .clear-btn {
+      margin-top: 8px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .clear-btn:hover {
+      border-color: var(--muted);
+      color: var(--text);
+    }
+    @media (max-width: 900px) {
+      .sidebar { width: 300px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 id="page-title">Architecture</h1>
+      <p id="page-desc"></p>
+    </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span style="font-size:0.72rem;color:var(--muted);white-space:nowrap;">Generated 2026-08-22 · 18 nodes · 38 edges · 7 flows</span></div></header>
+  <div class="main">
+    <div id="network"></div>
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <h2>Flows</h2>
+        <ul class="flow-list" id="flow-list"></ul>
+        <button class="clear-btn" id="clear-btn">Clear selection</button>
+      </div>
+      <div class="sidebar-section" style="border-bottom:none; padding-bottom:8px;">
+        <h2>Legend</h2>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="steps-panel">
+        <h2>Steps</h2>
+        <div id="steps-content">
+          <p class="empty-steps">Select a flow to see the path through the system.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // ========== ARCHITECTURE DATA (generated) ==========
+    const DATA = {"meta": {"title": "Reasoning Pruning \u2014 Architecture", "description": "A research toolkit that trains LLM reasoning models on their own pruned, compressed transition paths (x -> y). A generator G produces step-by-step traces, a decision auditor D identifies the first safely skippable span, and the extracted (x -> y) transitions become a Hugging Face dataset used to QLoRA fine-tune a compressed model G'. Ships as a composable Python library with a Typer CLI (`rp`), an interactive Colab notebook, and a Gradio visualizer.", "generated_at": "2026-08-22T00:00:00Z", "repo_root": "/home/avreymi/code/reasoning-pruning-agy"}, "nodes": [{"id": "cli", "label": "Typer CLI (rp)", "type": "client", "group": "Client Surfaces", "description": "Thin command shell over the core tools: `rp datagen try/build`, `rp train`, `rp eval`, `rp view`. Parses flags, prints Rich summaries, wires optional --push-to-hf publishing.", "files": ["reasoning_pruning/cli.py"], "tech": ["typer", "rich"]}, {"id": "explore-notebook", "label": "Exploration Notebook", "type": "frontend", "group": "Client Surfaces", "description": "Interactive 11-stage research lab: environment bootstrap, benchmark spectrum streaming, live trace generation, overthinking audits, HTML diffs, dataset construction/validation, and Hub sync. Calls every tool through the package API as `rp.*`.", "files": ["notebooks/01_explore_pruning.ipynb"], "tech": ["jupyter", "google-colab", "ipython-html"]}, {"id": "package-api", "label": "Package Public API", "type": "api", "group": "Package Interface", "description": "Root module re-exporting all 15+ composable tools and 7 dataclasses. Importing it auto-runs init_environment() so credentials and defaults are ready for every downstream caller.", "files": ["reasoning_pruning/__init__.py"], "tech": ["python"]}, {"id": "config", "label": "Config & Env Init", "type": "service", "group": "Configuration & Contracts", "description": "Loads .env files (repo, /content for Colab), normalizes token aliases (GEMINI_TOKEN -> GEMINI_API_KEY, HUGGINGFACE_TOKEN -> HF_TOKEN), defaults generator G to google/gemma-4-12B-it, and dynamically resolves decision auditor D per available provider credentials.", "files": ["reasoning_pruning/config.py"], "tech": ["python-dotenv-fallback", "env-vars"]}, {"id": "types", "label": "Core Dataclasses", "type": "other", "group": "Configuration & Contracts", "description": "Shared structured contracts passed between all layers: ReasoningTrace, PruneDecision, TransitionExample, RolloutResult, TrainResult, EvalSample, EvalResult \u2014 each with to_dict/from_dict serialization.", "files": ["reasoning_pruning/types.py"], "tech": ["python-dataclasses"]}, {"id": "generation", "label": "Generation & Rollout", "type": "service", "group": "Generation & Pruning Layer", "description": "Generator-model engine: generate_trace prompts G via LiteLLM (with prefix continuation), rollout_pruning iterates generate -> audit -> extract up to max_depth building the growing pruned prefix, and extract_transition forms the (x -> y) SFT pair.", "files": ["reasoning_pruning/generation.py"], "tech": ["litellm"]}, {"id": "decision", "label": "Decision Auditor D", "type": "service", "group": "Generation & Pruning Layer", "description": "LLM reasoning auditor: find_first_skip formats indexed steps + rubric prompt, calls D through LiteLLM, parses/validates the JSON verdict (bounds checks, no full-trace skips), and returns a PruneDecision with skip indices, skipped text, next step, and rationale.", "files": ["reasoning_pruning/decision.py"], "tech": ["litellm"]}, {"id": "segmenter", "label": "Step Segmenter", "type": "function", "group": "Generation & Pruning Layer", "description": "Pure-stdlib text segmentation: decomposes raw completions into discrete addressable steps s_1..s_n using auto-detected numbered markers, paragraphs, linebreaks, or sentence boundaries (decimal-safe regex).", "files": ["reasoning_pruning/segmenter.py"], "tech": ["regex"]}, {"id": "dataset-tools", "label": "PT Dataset Builder", "type": "service", "group": "Data & Distribution", "description": "Ingests real questions (load_benchmark_questions / load_spectrum_benchmarks across a 9-entry BENCHMARK_REGISTRY with offline curated fallback), fans out parallel rollout_pruning via ThreadPoolExecutor, injects provenance metadata, and packages TransitionExamples into a datasets.Dataset (build_pt_dataset / load_pt_dataset).", "files": ["reasoning_pruning/dataset.py"], "tech": ["huggingface-datasets", "tqdm", "concurrent.futures"]}, {"id": "hub-sync", "label": "HF Hub Sync", "type": "service", "group": "Data & Distribution", "description": "Publishes versioned artifacts with automated lineage documentation: push_dataset_to_hf uploads PT datasets plus a generated Dataset Card (depth breakdown), push_model_to_hf uploads adapters plus a Model Card embedding EvalResult metrics.", "files": ["reasoning_pruning/hub.py"], "tech": ["huggingface-hub"]}, {"id": "training", "label": "QLoRA SFT Trainer", "type": "worker", "group": "Training Layer", "description": "Fine-tunes base G on next-step transitions: 4-bit NF4 quantization, LoRA r=16 on attention+MLP projections, TRL SFTTrainer with '{input_x}\\n\\n[Next Step]:\\n{target_y}' formatting, paged_adamw_8bit; saves LoRA adapter to output_dir/final_adapter. Optional W&B reporting.", "files": ["reasoning_pruning/training.py"], "tech": ["transformers", "trl", "peft", "bitsandbytes", "torch", "wandb-optional"]}, {"id": "evaluation", "label": "Dual-Model Evaluator", "type": "service", "group": "Evaluation & Visualization", "description": "Runs base G and pruned G' side-by-side on benchmark questions via generate_trace, extracts answers ('#### n', \\boxed{}, last-number fallback), scores correctness against gold, and computes token savings % and accuracy delta into an EvalResult.", "files": ["reasoning_pruning/evaluation.py"], "tech": ["datasets", "tqdm"]}, {"id": "visualizer", "label": "Visualizer & Viewer", "type": "frontend", "group": "Evaluation & Visualization", "description": "Qualitative inspection surfaces: render_trace_diff (Rich terminal panel or self-contained notebook HTML with PRUNED/NEXT-USEFUL annotations), render_comparison (Base vs Pruned cards), and launch_viewer (Gradio dashboard with live pruning playground and dataset browser).", "files": ["reasoning_pruning/visualizer.py"], "tech": ["rich", "gradio", "html"]}, {"id": "llm-providers", "label": "LLM Providers (LiteLLM)", "type": "external", "group": "External Services", "description": "Unified completion gateway serving both roles: Generator G (trace generation) and Decision auditor D (skip auditing). Default models resolved by config: gemini/gemini-2.5-flash, gpt-4o-mini, claude-3-5-haiku, deepseek-chat, or huggingface/Qwen2.5-7B-Instruct.", "files": ["reasoning_pruning/config.py"], "tech": ["litellm", "gemini", "openai", "anthropic", "deepseek", "hf-inference"]}, {"id": "hf-hub-datasets", "label": "HF Hub \u2014 Datasets", "type": "external", "group": "Data & Distribution", "description": "Source of benchmark questions (openai/gsm8k, allenai/ai2_arc, tau/commonsense_qa, hotpotqa/hotpot_qa, ChilleD/SVAMP, rajpurkar/squad_v2, allenai/sciq, allenai/openbookqa \u2014 streamed, not downloaded) and destination for published PT dataset repos.", "files": ["reasoning_pruning/dataset.py"], "tech": ["huggingface-hub", "streaming"]}, {"id": "hf-hub-models", "label": "HF Hub \u2014 Models", "type": "external", "group": "Data & Distribution", "description": "Supplies base checkpoints (e.g. Qwen/Qwen2.5-1.5B-Instruct) for QLoRA loading and hosts released pruned-model adapter repos with lineage Model Cards.", "files": ["reasoning_pruning/hub.py"], "tech": ["huggingface-hub", "transformers"]}, {"id": "local-artifacts", "label": "Local Artifacts", "type": "storage", "group": "Data & Distribution", "description": "On-disk state: .env credentials consumed by config, Arrow datasets saved at ./data/rp_dataset (save_path), and LoRA checkpoints/adapters under ./checkpoints/rp_model/final_adapter.", "files": [".env", "scripts/colab_setup.sh"], "tech": ["arrow", "filesystem"]}, {"id": "wandb", "label": "Weights & Biases", "type": "external", "group": "External Services", "description": "Optional experiment-tracking backend enabled via TrainingArguments(report_to='wandb') when rp train --report-to wandb is set.", "files": [], "tech": ["wandb"]}], "edges": [{"id": "e-cli-dataset", "source": "cli", "target": "dataset-tools", "label": "dispatches", "description": "`rp datagen try` samples a benchmark question; build/view load or persist PT datasets"}, {"id": "e-cli-generation", "source": "cli", "target": "generation", "label": "runs rollout", "description": "`rp datagen try` invokes rollout_pruning with an on_step callback for per-depth rendering"}, {"id": "e-cli-training", "source": "cli", "target": "training", "label": "starts SFT", "description": "`rp train` forwards epochs/batch/lr/lora_r/report_to to train_pruning_model"}, {"id": "e-cli-evaluation", "source": "cli", "target": "evaluation", "label": "compares models", "description": "`rp eval` calls evaluate_models and prints token-savings and accuracy metrics"}, {"id": "e-cli-visualizer", "source": "cli", "target": "visualizer", "label": "renders / launches", "description": "Prints Rich trace diffs inline; `rp view` boots the Gradio viewer"}, {"id": "e-cli-hub", "source": "cli", "target": "hub-sync", "label": "publishes", "description": "--push-to-hf routes finished datasets/adapters to push_dataset_to_hf / push_model_to_hf"}, {"id": "e-nb-package", "source": "explore-notebook", "target": "package-api", "label": "imports rp.*", "description": "All notebook stages call tools through the public package API"}, {"id": "e-pkg-config", "source": "package-api", "target": "config", "label": "auto-init", "description": "Import side effect: init_environment() loads .env and normalizes credential aliases"}, {"id": "e-pkg-generation", "source": "package-api", "target": "generation", "label": "re-export", "description": "Exports generate_trace, extract_transition, rollout_pruning"}, {"id": "e-pkg-decision", "source": "package-api", "target": "decision", "label": "re-export", "description": "Exports find_first_skip"}, {"id": "e-pkg-segmenter", "source": "package-api", "target": "segmenter", "label": "re-export", "description": "Exports segment_steps"}, {"id": "e-pkg-dataset", "source": "package-api", "target": "dataset-tools", "label": "re-export", "description": "Exports build_pt_dataset, load_pt_dataset, load_benchmark_questions, load_spectrum_benchmarks, BENCHMARK_REGISTRY"}, {"id": "e-pkg-training", "source": "package-api", "target": "training", "label": "re-export", "description": "Exports train_pruning_model"}, {"id": "e-pkg-evaluation", "source": "package-api", "target": "evaluation", "label": "re-export", "description": "Exports evaluate_models"}, {"id": "e-pkg-visualizer", "source": "package-api", "target": "visualizer", "label": "re-export", "description": "Exports render_trace_diff, render_comparison, launch_viewer"}, {"id": "e-pkg-hub", "source": "package-api", "target": "hub-sync", "label": "re-export", "description": "Exports push_dataset_to_hf, push_model_to_hf"}, {"id": "e-pkg-types", "source": "package-api", "target": "types", "label": "re-exports contracts", "description": "ReasoningTrace, PruneDecision, TransitionExample, RolloutResult, TrainResult, EvalResult, EvalSample"}, {"id": "e-gen-segmenter", "source": "generation", "target": "segmenter", "label": "segments", "description": "generate_trace splits raw completions into discrete steps s_1..s_n after each call"}, {"id": "e-gen-decision", "source": "generation", "target": "decision", "label": "audits", "description": "rollout_pruning calls find_first_skip at every depth to locate the first safe skip"}, {"id": "e-gen-config", "source": "generation", "target": "config", "label": "resolves defaults", "description": "Falls back to get_default_generator_model() when no explicit model given"}, {"id": "e-gen-llm", "source": "generation", "target": "llm-providers", "label": "completions (G)", "description": "litellm.completion generates reasoning continuations from question + prefix"}, {"id": "e-dec-config", "source": "decision", "target": "config", "label": "resolves defaults", "description": "Falls back to get_default_decision_model()"}, {"id": "e-dec-llm", "source": "decision", "target": "llm-providers", "label": "completions (D)", "description": "litellm.completion audits indexed steps and returns a JSON skip verdict"}, {"id": "e-ds-generation", "source": "dataset-tools", "target": "generation", "label": "parallel rollouts", "description": "build_pt_dataset fans out rollout_pruning across questions via ThreadPoolExecutor(max_workers)"}, {"id": "e-ds-config", "source": "dataset-tools", "target": "config", "label": "resolves defaults", "description": "Resolves G and D defaults when not explicitly passed"}, {"id": "e-ds-hfds", "source": "dataset-tools", "target": "hf-hub-datasets", "label": "streams benchmarks", "description": "datasets.load_dataset(streaming=True) pulls GSM8K/ARC/CQA/HotpotQA/SVAMP/SQuAD rows without full download"}, {"id": "e-ds-local", "source": "dataset-tools", "target": "local-artifacts", "label": "writes arrow", "description": "save_to_disk(save_path) persists the built PT dataset locally"}, {"id": "e-hub-hfds", "source": "hub-sync", "target": "hf-hub-datasets", "label": "pushes dataset", "description": "push_to_hub + generated README card documenting depth breakdown and lineage"}, {"id": "e-hub-hfm", "source": "hub-sync", "target": "hf-hub-models", "label": "pushes adapter", "description": "create_repo + upload_folder releases the pruned model with a lineage Model Card"}, {"id": "e-hub-local", "source": "hub-sync", "target": "local-artifacts", "label": "reads artifacts", "description": "Accepts local Arrow dataset paths or checkpoint folders before upload"}, {"id": "e-train-hfm", "source": "training", "target": "hf-hub-models", "label": "downloads base", "description": "AutoModelForCausalLM/AutoTokenizer.from_pretrained fetch base weights + tokenizer"}, {"id": "e-train-local", "source": "training", "target": "local-artifacts", "label": "writes checkpoints", "description": "Trainer epoch checkpoints and final LoRA adapter saved under output_dir"}, {"id": "e-train-wandb", "source": "training", "target": "wandb", "label": "logs metrics", "description": "Optional TrainingArguments(report_to='wandb') experiment tracking"}, {"id": "e-eval-generation", "source": "evaluation", "target": "generation", "label": "dual inference", "description": "Calls generate_trace once per question for both base G and pruned G' and compares token counts"}, {"id": "e-eval-hfds", "source": "evaluation", "target": "hf-hub-datasets", "label": "loads eval set", "description": "datasets.load_dataset(benchmark, split='test') supplies questions and ground truths"}, {"id": "e-eval-visualizer", "source": "evaluation", "target": "visualizer", "label": "provides EvalResult", "description": "Per-sample comparisons rendered by render_comparison in notebooks/viewer"}, {"id": "e-viz-generation", "source": "visualizer", "target": "generation", "label": "live playground", "description": "Gradio viewer runs rollout_pruning live on user-submitted questions"}, {"id": "e-cfg-local", "source": "config", "target": "local-artifacts", "label": "loads .env", "description": "Searches repo/.env and /content/.env (Colab) for API keys with dotenv fallback parser"}], "flows": [{"id": "single-question-pruning-trial", "name": "Pruning Trial (CLI)", "description": "`rp datagen try` \u2014 end-to-end single-question rollout with terminal diff visualization", "steps": [{"order": 1, "node": "cli", "action": "Resolve input question", "details": "Parses -q/--benchmark flags; if no question is given, samples one from a benchmark registry alias."}, {"order": 2, "node": "dataset-tools", "action": "Fetch authentic benchmark sample", "details": "load_benchmark_questions streams one real question + gold answer (curated fallback when offline)."}, {"order": 3, "node": "generation", "action": "Run multi-depth rollout", "details": "rollout_pruning loops generate_trace -> grow pruned prefix -> recurse to --max-depth; computes compression_ratio from original vs final step counts."}, {"order": 4, "node": "decision", "action": "Audit for first safe skip", "details": "find_first_skip sends indexed steps + rubric to D; validates JSON indices, blocks full-trace skips, returns PruneDecision with reason."}, {"order": 5, "node": "visualizer", "action": "Render colored diff", "details": "on_step callback prints a Rich panel per depth (green prefix / struck-through PRUNED / cyan target); CLI prints compression summary."}]}, {"id": "notebook-research-lab", "name": "Interactive Research Lab (Colab)", "description": "Notebook-driven exploration across the full reasoning spectrum, stage by stage", "steps": [{"order": 1, "node": "explore-notebook", "action": "Bootstrap environment", "details": "Detects Colab vs local, installs deps, imports the library as `rp`."}, {"order": 2, "node": "package-api", "action": "Surface composable tools", "details": "Package import triggers init_environment(); all tools available as rp.*."}, {"order": 3, "node": "dataset-tools", "action": "Load reasoning spectrum", "details": "load_spectrum_benchmarks streams 6 benchmark families: math, science, commonsense, multi-hop, extractive QA."}, {"order": 4, "node": "generation", "action": "Generate live traces", "details": "generate_trace produces ReasoningTrace objects; rollout_pruning recurses multi-depth on complex problems."}, {"order": 5, "node": "decision", "action": "Overthinking audit", "details": "find_first_skip identifies the first redundant span with a written justification."}, {"order": 6, "node": "visualizer", "action": "Inspect diffs in-notebook", "details": "render_trace_diff(as_html=True) displays annotated diffs; build_pt_dataset output validated against schema constraints."}]}, {"id": "pt-dataset-build-and-publish", "name": "PT Dataset Build & Publish (CLI)", "description": "`rp datagen build` \u2014 turn benchmark questions into a versioned Hugging Face training dataset", "steps": [{"order": 1, "node": "cli", "action": "Dispatch datagen build", "details": "Resolves --dataset ('gsm8k' or 'spectrum'), --workers, --max-depth, optional --push-to-hf repo id."}, {"order": 2, "node": "dataset-tools", "action": "Ingest source questions", "details": "Benchmark loaders normalize multiple-choice options, contexts, and ground truths into uniform question dicts."}, {"order": 3, "node": "generation", "action": "Parallel pruning rollouts", "details": "ThreadPoolExecutor runs rollout_pruning per question; provenance metadata (category, source_dataset, ground_truth) injected into transitions."}, {"order": 4, "node": "decision", "action": "Produce skip labels", "details": "Each depth yields a TransitionExample: input_x (question + useful prefix) -> target_y (next useful step), plus skipped_steps and skip_reason."}, {"order": 5, "node": "local-artifacts", "action": "Persist locally", "details": "Dataset saved as Arrow files under ./data/rp_dataset."}, {"order": 6, "node": "hub-sync", "action": "Upload with lineage", "details": "push_dataset_to_hf computes depth breakdown and uploads an auto-generated Dataset Card."}, {"order": 7, "node": "hf-hub-datasets", "action": "Published dataset repo", "details": "Versioned PT dataset goes live on the Hub (e.g. user/rp-gsm8k-qwen1.5b-v1)."}]}, {"id": "qlora-finetuning", "name": "QLoRA Fine-Tuning (GPU)", "description": "`rp train` \u2014 compress G into G' via SFT on pruning transitions", "steps": [{"order": 1, "node": "cli", "action": "Dispatch rp train", "details": "Forwards --epochs, --batch-size, --lr, --lora-r, --report-to to the trainer."}, {"order": 2, "node": "training", "action": "Load PT data + quantize base", "details": "Resolves local Arrow folder or HF repo for the dataset; loads AutoModelForCausalLM with NF4 BitsAndBytesConfig (4-bit, double quant)."}, {"order": 3, "node": "hf-hub-models", "action": "Fetch base checkpoint", "details": "Downloads e.g. Qwen/Qwen2.5-1.5B-Instruct weights and tokenizer."}, {"order": 4, "node": "training", "action": "SFT on x->y transitions", "details": "TRL SFTTrainer formats '{input_x}\\n\\n[Next Step]:\\n{target_y}'; LoRA r=16 targets attention + MLP projections; paged_adamw_8bit optimizer."}, {"order": 5, "node": "local-artifacts", "action": "Write adapter checkpoint", "details": "trainer.model.save_pretrained -> ./checkpoints/rp_model/final_adapter (+ tokenizer)."}, {"order": 6, "node": "hub-sync", "action": "Publish pruned model", "details": "push_model_to_hf uploads the adapter folder and writes a lineage Model Card (base model, method, eval metrics)."}, {"order": 7, "node": "hf-hub-models", "action": "Release G'", "details": "Pruned-model repo live on the Hub (e.g. user/qwen1.5b-rp-v1)."}]}, {"id": "base-vs-pruned-evaluation", "name": "Base vs Pruned Evaluation (CLI)", "description": "`rp eval` \u2014 verify compression did not sacrifice accuracy", "steps": [{"order": 1, "node": "cli", "action": "Dispatch rp eval", "details": "Takes base vs pruned identifiers, benchmark name, --max-samples."}, {"order": 2, "node": "evaluation", "action": "Load benchmark + orchestrate", "details": "datasets.load_dataset(benchmark, split='test') supplies questions and gold answers; loops samples with tqdm."}, {"order": 3, "node": "generation", "action": "Dual generation", "details": "generate_trace called once per model per question; token counts captured from usage metadata."}, {"order": 4, "node": "llm-providers", "action": "Serve completions", "details": "Both G (verbose baseline) and G' (pruned) routed through LiteLLM."}, {"order": 5, "node": "visualizer", "action": "Report comparison", "details": "Console metrics table; render_comparison renders side-by-side cards; token savings % and accuracy delta summarized."}]}, {"id": "gradio-live-playground", "name": "Live Gradio Playground", "description": "`rp view --share` \u2014 interactive browser dashboard for pruning demos", "steps": [{"order": 1, "node": "cli", "action": "Launch viewer", "details": "`rp view` optionally loads a PT dataset before starting the server; --share exposes a public URL (Colab-friendly)."}, {"order": 2, "node": "dataset-tools", "action": "Provide browsing data", "details": "load_pt_dataset resolves a local Arrow folder or Hub repo for the Dataset Browser tab."}, {"order": 3, "node": "visualizer", "action": "Serve Gradio dashboard", "details": "Tabs: Live Pruning Playground (question input, model dropdowns, depth slider) and Dataset Browser (JSON inspector)."}, {"order": 4, "node": "generation", "action": "On-demand rollout", "details": "Submitted question runs rollout_pruning live inside the browser session."}, {"order": 5, "node": "decision", "action": "Real-time audits", "details": "Per-depth PruneDecisions rendered as stacked HTML diff cards with a compression summary."}]}, {"id": "environment-bootstrap", "name": "Credential Bootstrap & Defaults", "description": "How every entry point gets working credentials and sensible default models", "steps": [{"order": 1, "node": "package-api", "action": "Import library", "details": "Any entry point (notebook cell, CLI process) importing reasoning_pruning triggers package initialization."}, {"order": 2, "node": "config", "action": "Sync environment", "details": "init_environment scans standard .env locations and normalizes aliases (GEMINI_TOKEN -> GEMINI_API_KEY, HUGGINGFACE_TOKEN -> HF_TOKEN)."}, {"order": 3, "node": "local-artifacts", "action": "Supply credentials", "details": "Keys discovered in repo/.env or /content/.env via dotenv or a built-in fallback parser; never crashes when absent."}, {"order": 4, "node": "generation", "action": "Defaults resolved downstream", "details": "get_default_generator_model resolves google/gemma-4-12B-it; get_default_decision_model picks provider models by priority: gemini-2.5-flash -> gpt-4o-mini -> claude-3-5-haiku -> deepseek -> HF Qwen."}]}]};
+    // ========== END DATA ==========
+
+    // Color palette by group / type
+    const GROUP_COLORS = {
+      "Client Surfaces": "#58a6ff",
+      "Package Interface": "#bc8cff",
+      "Configuration & Contracts": "#f778ba",
+      "Generation & Pruning Layer": "#3fb950",
+      "Training Layer": "#ffa657",
+      "Evaluation & Visualization": "#e3b341",
+      "Data & Distribution": "#39c5cf",
+      "External Services": "#8b949e",
+      "Client": "#58a6ff", "Frontend": "#58a6ff", "API": "#3fb950",
+      "Service": "#d2a8ff", "Core Services": "#d2a8ff",
+      "Worker": "#ffa657", "Background": "#ffa657",
+      "Data": "#79c0ff", "Storage": "#79c0ff", "Database": "#79c0ff",
+      "Infra": "#8b949e", "Distribution": "#ffa657", "Build": "#ffa657"
+    };
+    const TYPE_FALLBACK = {
+      client: "#58a6ff", frontend: "#58a6ff", api: "#3fb950",
+      service: "#d2a8ff", function: "#d2a8ff", worker: "#ffa657",
+      database: "#79c0ff", storage: "#79c0ff", queue: "#ffa657",
+      external: "#8b949e", infra: "#8b949e", auth: "#f778ba", other: "#8b949e"
+    };
+
+    function colorFor(node) {
+      return GROUP_COLORS[node.group] || TYPE_FALLBACK[node.type] || "#8b949e";
+    }
+
+    // Populate header
+    document.getElementById("page-title").textContent = DATA.meta.title || "Architecture";
+    document.getElementById("page-desc").textContent = DATA.meta.description || "";
+
+    // Build vis nodes / edges
+    const visNodes = new vis.DataSet(DATA.nodes.map(n => ({
+      id: n.id,
+      label: n.label,
+      title: `<b>${n.label}</b><br>${n.type} · ${n.group}<br>${n.description || ""}${n.files && n.files.length ? "<br><br>Files: " + n.files.slice(0,4).join(", ") : ""}`,
+      color: {
+        background: colorFor(n),
+        border: "#ffffff33",
+        highlight: { background: colorFor(n), border: "#f0c14b" },
+        hover: { background: colorFor(n), border: "#f0c14b" }
+      },
+      font: { color: "#0f1117", size: 13, face: "system-ui", bold: true },
+      shape: "box",
+      margin: 12,
+      borderWidth: 1,
+      borderWidthSelected: 3,
+      group: n.group
+    })));
+
+    const visEdges = new vis.DataSet(DATA.edges.map((e, i) => ({
+      id: e.id || `e${i}`,
+      from: e.source,
+      to: e.target,
+      label: e.label || "",
+      title: e.description || e.label || "",
+      arrows: "to",
+      color: { color: "#484f58", highlight: "#f0c14b", hover: "#8b949e" },
+      font: { color: "#8b949e", size: 11, strokeWidth: 0, align: "middle" },
+      smooth: { type: "cubicBezier", roundness: 0.4 }
+    })));
+
+    const container = document.getElementById("network");
+    const network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, {
+      physics: {
+        enabled: true,
+        solver: "forceAtlas2Based",
+        forceAtlas2Based: { gravitationalConstant: -60, centralGravity: 0.01, springLength: 120, springConstant: 0.08 },
+        stabilization: { iterations: 120 }
+      },
+      interaction: { hover: true, tooltipDelay: 120, hideEdgesOnDrag: false },
+      nodes: { shape: "box" },
+      edges: { width: 1.5, selectionWidth: 3 }
+    });
+
+    // Legend
+    const groups = [...new Set(DATA.nodes.map(n => n.group))];
+    const legendEl = document.getElementById("legend");
+    groups.forEach(g => {
+      const color = GROUP_COLORS[g] || "#8b949e";
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      item.innerHTML = `<span class="legend-dot" style="background:${color}"></span>${g}`;
+      legendEl.appendChild(item);
+    });
+
+    // Flow list
+    const flowList = document.getElementById("flow-list");
+    let activeFlowId = null;
+
+    DATA.flows.forEach(f => {
+      const li = document.createElement("li");
+      li.className = "flow-item";
+      li.dataset.id = f.id;
+      li.innerHTML = `${f.name}<span class="flow-desc">${f.description || ""}</span>`;
+      li.addEventListener("click", () => selectFlow(f.id));
+      flowList.appendChild(li);
+    });
+
+    document.getElementById("clear-btn").addEventListener("click", () => selectFlow(null));
+
+    function selectFlow(flowId) {
+      activeFlowId = flowId;
+      document.querySelectorAll(".flow-item").forEach(el => {
+        el.classList.toggle("active", el.dataset.id === flowId);
+      });
+
+      const stepsEl = document.getElementById("steps-content");
+      if (!flowId) {
+        network.unselectAll();
+        visNodes.forEach(n => visNodes.update({ id: n.id, opacity: 1, borderWidth: 1 }));
+        visEdges.forEach(e => visEdges.update({ id: e.id, color: { color: "#484f58", highlight: "#f0c14b" }, width: 1.5 }));
+        stepsEl.innerHTML = `<p class="empty-steps">Select a flow to see the path through the system.</p>`;
+        return;
+      }
+
+      const flow = DATA.flows.find(f => f.id === flowId);
+      if (!flow) return;
+
+      const pathNodeIds = new Set(flow.steps.map(s => s.node));
+      const pathEdgeIds = new Set();
+
+      // Find edges that connect consecutive steps
+      for (let i = 0; i < flow.steps.length - 1; i++) {
+        const a = flow.steps[i].node;
+        const b = flow.steps[i + 1].node;
+        const edge = DATA.edges.find(e =>
+          (e.source === a && e.target === b) || (e.source === b && e.target === a)
+        );
+        if (edge) {
+          const eid = edge.id || DATA.edges.indexOf(edge);
+          // We need the vis edge id
+          const visEdge = visEdges.get().find(ve => ve.from === a && ve.to === b || ve.from === b && ve.to === a);
+          if (visEdge) pathEdgeIds.add(visEdge.id);
+        }
+      }
+
+      // Update visuals
+      visNodes.forEach(n => {
+        const onPath = pathNodeIds.has(n.id);
+        visNodes.update({
+          id: n.id,
+          opacity: onPath ? 1 : 0.25,
+          borderWidth: onPath ? 3 : 1,
+          color: {
+            background: colorFor(DATA.nodes.find(dn => dn.id === n.id)),
+            border: onPath ? "#f0c14b" : "#ffffff33",
+            highlight: { background: colorFor(DATA.nodes.find(dn => dn.id === n.id)), border: "#f0c14b" }
+          }
+        });
+      });
+
+      visEdges.forEach(e => {
+        const onPath = pathEdgeIds.has(e.id);
+        visEdges.update({
+          id: e.id,
+          width: onPath ? 3.5 : 1,
+          color: {
+            color: onPath ? "#f0c14b" : "#30363d",
+            highlight: "#f0c14b",
+            opacity: onPath ? 1 : 0.3
+          }
+        });
+      });
+
+      // Focus the path
+      network.fit({ nodes: [...pathNodeIds], animation: true });
+
+      // Render steps
+      stepsEl.innerHTML = flow.steps
+        .sort((a, b) => a.order - b.order)
+        .map(s => {
+          const node = DATA.nodes.find(n => n.id === s.node);
+          return `
+            <div class="step">
+              <div class="step-num">${s.order}</div>
+              <div class="step-body">
+                <strong>${node ? node.label : s.node} — ${s.action}</strong>
+                <div class="details">${s.details || ""}</div>
+              </div>
+            </div>`;
+        }).join("");
+    }
+
+    // Stabilize then stop physics for better interaction
+    network.once("stabilizationIterationsDone", () => {
+      network.setOptions({ physics: false });
+    });
+  </script>
+</body>
+</html>

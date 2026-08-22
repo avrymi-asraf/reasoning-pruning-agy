@@ -7,6 +7,8 @@ Execution Environment: Runs universally in local Python, Google Colab notebooks,
 """
 
 from reasoning_pruning.config import (
+    DEFAULT_DECISION_MODEL,
+    DEFAULT_GENERATOR_MODEL,
     get_default_decision_model,
     get_default_generator_model,
     get_default_model,
@@ -69,6 +71,8 @@ __all__ = [
     "get_default_model",
     "get_default_generator_model",
     "get_default_decision_model",
+    "DEFAULT_GENERATOR_MODEL",
+    "DEFAULT_DECISION_MODEL",
     "init_environment",
     # Types
     "ReasoningTrace",

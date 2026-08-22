@@ -17,7 +17,10 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Canonical default models per provider
+# Canonical default models
+DEFAULT_GENERATOR_MODEL = "google/gemma-4-12B-it"
+DEFAULT_DECISION_MODEL = "gemini/gemini-2.5-flash"
+
 PROVIDER_DEFAULT_MODELS = {
     "gemini": "gemini/gemini-2.5-flash",
     "openai": "gpt-4o-mini",
@@ -62,6 +65,8 @@ def init_environment(force: bool = False) -> None:
             "RP_MODEL_G",
             "RP_MODEL_D",
             "RP_DEFAULT_MODEL",
+            "RP_DEFAULT_GENERATOR_MODEL",
+            "RP_DEFAULT_DECISION_MODEL",
         ]
         for key in colab_keys:
             try:
@@ -138,33 +143,57 @@ def _normalize_aliases() -> None:
         os.environ["WANDB_API_KEY"] = os.environ["WANDB_TOKEN"]
 
 
-def get_default_model(role: str = "generator") -> str:
-    """Resolve the optimal default LLM model for a given role based on available credentials.
+def get_default_generator_model() -> str:
+    """Resolve the default LLM model for generator G.
 
-    Parameters:
-        role: "generator" (for model G) or "decision" (for auditor D).
+    Resolution precedence:
+        1. `RP_MODEL_G` environment variable.
+        2. `RP_DEFAULT_GENERATOR_MODEL` environment variable.
+        3. `RP_DEFAULT_MODEL` environment variable.
+        4. Canonical default: `DEFAULT_GENERATOR_MODEL` ('google/gemma-4-12B-it').
 
     Returns:
-        String model identifier supported by LiteLLM.
+        String model identifier for generator G.
     """
     init_environment()
 
-    # 1. Explicit role-specific environment override
-    if role == "generator" and "RP_MODEL_G" in os.environ:
+    if "RP_MODEL_G" in os.environ:
         return os.environ["RP_MODEL_G"]
-    if role == "decision" and "RP_MODEL_D" in os.environ:
-        return os.environ["RP_MODEL_D"]
-
-    # 2. General default model override
+    if "RP_DEFAULT_GENERATOR_MODEL" in os.environ:
+        return os.environ["RP_DEFAULT_GENERATOR_MODEL"]
     if "RP_DEFAULT_MODEL" in os.environ:
         return os.environ["RP_DEFAULT_MODEL"]
 
-    # 3. Detect by available API credentials (prioritizing Gemini & OpenAI)
-    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_TOKEN")
+    return DEFAULT_GENERATOR_MODEL
+
+
+def get_default_decision_model() -> str:
+    """Resolve the optimal default LLM model for decision auditor D.
+
+    Resolution precedence:
+        1. `RP_MODEL_D` environment variable.
+        2. `RP_DEFAULT_DECISION_MODEL` environment variable.
+        3. `RP_DEFAULT_MODEL` environment variable.
+        4. Active provider credentials detection (Gemini -> OpenAI -> Anthropic -> DeepSeek -> HuggingFace).
+        5. Canonical fallback: `DEFAULT_DECISION_MODEL` ('gemini/gemini-2.5-flash').
+
+    Returns:
+        String model identifier for decision auditor D.
+    """
+    init_environment()
+
+    if "RP_MODEL_D" in os.environ:
+        return os.environ["RP_MODEL_D"]
+    if "RP_DEFAULT_DECISION_MODEL" in os.environ:
+        return os.environ["RP_DEFAULT_DECISION_MODEL"]
+    if "RP_DEFAULT_MODEL" in os.environ:
+        return os.environ["RP_DEFAULT_MODEL"]
+
+    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_TOKEN") or os.environ.get("GOOGLE_API_KEY")
     openai_key = os.environ.get("OPENAI_API_KEY")
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-    deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
-    hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_TOKEN")
+    deepseek_key = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("DEEPSEEK_TOKEN")
+    hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
 
     if gemini_key:
         return PROVIDER_DEFAULT_MODELS["gemini"]
@@ -177,15 +206,20 @@ def get_default_model(role: str = "generator") -> str:
     if hf_token:
         return PROVIDER_DEFAULT_MODELS["huggingface"]
 
-    # Default fallback
-    return PROVIDER_DEFAULT_MODELS["gemini"]
+    return DEFAULT_DECISION_MODEL
 
 
-def get_default_generator_model() -> str:
-    """Convenience accessor for default generator model G."""
-    return get_default_model(role="generator")
+def get_default_model(role: str = "generator") -> str:
+    """Resolve the optimal default LLM model for a given role based on configuration and credentials.
 
+    Parameters:
+        role: "generator" (for model G) or "decision" (for auditor D).
 
-def get_default_decision_model() -> str:
-    """Convenience accessor for default decision auditor model D."""
-    return get_default_model(role="decision")
+    Returns:
+        String model identifier.
+    """
+    if role == "generator":
+        return get_default_generator_model()
+    elif role == "decision":
+        return get_default_decision_model()
+    return get_default_generator_model()
